@@ -1,0 +1,38 @@
+{
+  "config": {
+    "abort": {
+      "no_hue_v2": "Configure a Philips Hue v2 bridge with Home Assistant's native Philips Hue integration first."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "hue_bridges": "Hue bridges"
+        },
+        "description": "Choose which native Philips Hue v2 bridges should expose gradient attributes and accept gradient actions.",
+        "title": "Philips Hue Gradient Controller"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "hue_bridges": "Hue bridges"
+        },
+        "description": "Choose which native Philips Hue v2 bridges should expose gradient attributes and accept gradient actions.",
+        "title": "Select Hue bridges"
+      }
+    }
+  },
+  "issues": {
+    "incompatible_native_hue": {
+      "description": "Philips Hue Gradient Controller could not safely extend Home Assistant's native Hue light attributes. The installed Home Assistant Hue implementation is not compatible with this integration version. Update Philips Hue Gradient Controller or Home Assistant, then reload the integration. No broad compatibility patch was applied.",
+      "title": "Native Hue compatibility check failed"
+    },
+    "selected_bridges_missing": {
+      "description": "The configured selection contains {count} unavailable Philips Hue v2 bridge entry or entries. A bridge may be disabled, removed, ignored, or no longer use Hue API v2. Open **Settings → Devices & services**, configure Philips Hue Gradient Controller, and update the bridge selection. This issue clears automatically after the integration reloads with a valid selection.",
+      "title": "The Hue bridge selection contains unavailable entries"
+    }
+  },
+  "title": "Philips Hue Gradient Controller"
+}

@@ -1,0 +1,94 @@
+set_gradient:
+  name: Set gradient
+  description: >-
+    Set ordered colors and a supported gradient mode on individual native
+    Philips Hue gradient lights.
+  target:
+    entity:
+      domain: light
+  fields:
+    colors:
+      name: Colors
+      description: >-
+        Ordered color stops. The visual editor produces RGB color rows; YAML
+        also accepts a list using only #RRGGBB strings or only RGB triples.
+      required: true
+      example:
+        - "#FF0000"
+        - "#0000FF"
+      selector:
+        object:
+          multiple: true
+          fields:
+            color:
+              label: Color
+              required: true
+              selector:
+                color_rgb:
+    mode:
+      name: Mode
+      description: Hue gradient mode. The light must report support for it.
+      default: interpolated_palette
+      selector:
+        select:
+          options:
+            - interpolated_palette
+            - interpolated_palette_mirrored
+            - random_pixelated
+            - segmented_palette
+    turn_on:
+      name: Turn on
+      description: Explicitly turn on the light in the same Hue update.
+      default: false
+      selector:
+        boolean:
+    brightness:
+      name: Brightness
+      description: Optional Home Assistant brightness from 1 to 255.
+      selector:
+        number:
+          min: 1
+          max: 255
+          mode: slider
+    transition:
+      name: Transition
+      description: Optional transition duration in seconds.
+      selector:
+        number:
+          min: 0
+          max: 6000
+          step: 0.1
+          unit_of_measurement: seconds
+          mode: box
+
+snapshot_gradient:
+  name: Snapshot gradient
+  description: >-
+    Capture exact Hue xy gradient points, mode, power, and bridge brightness in
+    a versioned payload that can be passed to Restore gradient.
+  target:
+    entity:
+      domain: light
+
+restore_gradient:
+  name: Restore gradient
+  description: >-
+    Restore a payload returned by Snapshot gradient without RGB conversion.
+    Targets are taken from the snapshot.
+  fields:
+    snapshot:
+      name: Snapshot
+      description: Versioned payload returned by Snapshot gradient.
+      required: true
+      selector:
+        object:
+    transition:
+      name: Transition
+      description: Optional transition duration in seconds.
+      selector:
+        number:
+          min: 0
+          max: 6000
+          step: 0.1
+          unit_of_measurement: seconds
+          mode: box
