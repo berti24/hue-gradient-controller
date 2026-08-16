@@ -10,6 +10,10 @@
         },
         "description": "Choose which native Philips Hue v2 bridges should expose gradient attributes and accept gradient actions.",
         "title": "Philips Hue Gradient Controller"
+      },
+      "confirm": {
+        "description": "Review the native Hue lights that will receive gradient attributes. This list is calculated from existing Home Assistant entities; no new entities or devices are created.\n\n{gradient_lights}",
+        "title": "Review gradient light coverage"
       }
     }
   },
@@ -21,6 +25,10 @@
         },
         "description": "Choose which native Philips Hue v2 bridges should expose gradient attributes and accept gradient actions.",
         "title": "Select Hue bridges"
+      },
+      "confirm": {
+        "description": "Review the native Hue lights that will receive gradient attributes. This list is calculated from existing Home Assistant entities; no new entities or devices are created.\n\n{gradient_lights}",
+        "title": "Review gradient light coverage"
       }
     }
   },

@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-08-16
+
+### Added
+
+- Read-only, grouped coverage summaries in the Add and Configure flows showing
+  native Hue lights that currently receive gradient attributes.
+- Confirmation steps that inspect existing native Hue entities without creating
+  or reassigning entities and devices.
+
+## [0.1.3] - 2026-08-16
+
+### Added
+
+- A full-color Philips Hue Gradient Controller icon, shipped locally in normal
+  and high-DPI sizes for Home Assistant's integration UI.
+
 ## [0.1.2] - 2026-07-31
 
 ### Added
@@ -47,6 +63,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - HACS metadata, config and options flows, translations, documentation,
   architecture decisions, tests, and validation workflows.
 
+[0.2.0]: https://github.com/berti24/hue-gradient-controller/compare/v0.1.3...v0.2.0
+[0.1.3]: https://github.com/berti24/hue-gradient-controller/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/berti24/hue-gradient-controller/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/berti24/hue-gradient-controller/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/berti24/hue-gradient-controller/releases/tag/v0.1.0

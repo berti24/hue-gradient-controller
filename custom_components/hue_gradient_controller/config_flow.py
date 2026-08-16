@@ -22,6 +22,7 @@ from .const import (
     NAME,
     SELECT_ALL_HUE_BRIDGES,
 )
+from .coverage import format_gradient_light_coverage, gradient_light_coverage
 
 
 def _hue_v2_entries(hass: HomeAssistant) -> list[ConfigEntry[Any]]:
@@ -90,6 +91,7 @@ class HueGradientControllerConfigFlow(
     """Configure Philips Hue Gradient Controller."""
 
     VERSION = 1
+    _pending_hue_bridges: list[str] | None = None
 
     @staticmethod
     @callback
@@ -120,19 +122,38 @@ class HueGradientControllerConfigFlow(
                 ),
             )
 
+        self._pending_hue_bridges = _normalize_bridge_selection(
+            user_input[CONF_HUE_BRIDGES]
+        )
+        return await self.async_step_confirm()
+
+    async def async_step_confirm(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Review the native Hue lights covered by the pending selection."""
+        selection = self._pending_hue_bridges or [SELECT_ALL_HUE_BRIDGES]
+        if user_input is None:
+            coverage = gradient_light_coverage(self.hass, selection)
+            return self.async_show_form(
+                step_id="confirm",
+                data_schema=vol.Schema({}),
+                description_placeholders={
+                    "gradient_lights": format_gradient_light_coverage(coverage),
+                },
+            )
+
         return self.async_create_entry(
             title=NAME,
             data={},
-            options={
-                CONF_HUE_BRIDGES: _normalize_bridge_selection(
-                    user_input[CONF_HUE_BRIDGES]
-                )
-            },
+            options={CONF_HUE_BRIDGES: selection},
         )
 
 
 class HueGradientControllerOptionsFlow(OptionsFlowWithReload):
     """Update the native Hue bridge selection."""
+
+    _pending_hue_bridges: list[str] | None = None
 
     async def async_step_init(
         self,
@@ -140,14 +161,10 @@ class HueGradientControllerOptionsFlow(OptionsFlowWithReload):
     ) -> ConfigFlowResult:
         """Show and save bridge-selection options."""
         if user_input is not None:
-            return self.async_create_entry(
-                title="",
-                data={
-                    CONF_HUE_BRIDGES: _normalize_bridge_selection(
-                        user_input[CONF_HUE_BRIDGES]
-                    )
-                },
+            self._pending_hue_bridges = _normalize_bridge_selection(
+                user_input[CONF_HUE_BRIDGES]
             )
+            return await self.async_step_confirm()
 
         return self.async_show_form(
             step_id="init",
@@ -158,4 +175,25 @@ class HueGradientControllerOptionsFlow(OptionsFlowWithReload):
                     [SELECT_ALL_HUE_BRIDGES],
                 ),
             ),
+        )
+
+    async def async_step_confirm(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> ConfigFlowResult:
+        """Review the native Hue lights covered by the pending selection."""
+        selection = self._pending_hue_bridges or [SELECT_ALL_HUE_BRIDGES]
+        if user_input is None:
+            coverage = gradient_light_coverage(self.hass, selection)
+            return self.async_show_form(
+                step_id="confirm",
+                data_schema=vol.Schema({}),
+                description_placeholders={
+                    "gradient_lights": format_gradient_light_coverage(coverage),
+                },
+            )
+
+        return self.async_create_entry(
+            title="",
+            data={CONF_HUE_BRIDGES: selection},
         )

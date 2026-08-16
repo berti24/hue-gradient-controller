@@ -32,6 +32,11 @@ least two colors, while each light reports its own maximum in
    **Philips Hue Gradient Controller**.
 6. Select one or more configured Hue v2 bridges, or select **All Hue bridges**.
 
+After choosing the bridges, the Add and Configure flows show a read-only,
+grouped summary of the native Hue lights that currently receive gradient
+attributes. The summary is calculated from existing entities and does not
+create or reassign entities or devices.
+
 One config entry stores the bridge selection. The selection can be changed
 later with **Configure** on the integration. **All Hue bridges** also covers Hue
 v2 bridges added in the future.

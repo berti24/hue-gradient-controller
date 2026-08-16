@@ -37,6 +37,17 @@ async def test_user_can_create_single_controller_for_hue_v2(
         user_input={CONF_HUE_BRIDGES: [hue_entry.entry_id]},
     )
 
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "confirm"
+    assert "No matching gradient lights" in result["description_placeholders"][
+        "gradient_lights"
+    ]
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Philips Hue Gradient Controller"
     assert result["data"] == {}
@@ -97,6 +108,14 @@ async def test_all_bridges_choice_is_exclusive(
         },
     )
 
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "confirm"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={},
+    )
+
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["options"] == {
         CONF_HUE_BRIDGES: [SELECT_ALL_HUE_BRIDGES]
@@ -134,6 +153,14 @@ async def test_options_flow_updates_bridge_selection(
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
         user_input={CONF_HUE_BRIDGES: [second_hue.entry_id]},
+    )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "confirm"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={},
     )
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
