@@ -70,7 +70,11 @@ actions. Hue Entertainment frames are not exposed as per-frame state.
 ## Repository map
 
 - `custom_components/hue_gradient_controller/`: shipped HACS integration
-- `tests/`: Home Assistant and aiohue behavior tests
+- `hue-gradient-light-card/`: standalone dashboard card sources, npm and
+  Playwright configuration, development documentation, and JavaScript/browser
+  tests
+- `tests/`: Home Assistant and aiohue behavior tests; card metadata tests live
+  in `tests/hue_gradient_light_card/`
 - `docs/adr/`: accepted architectural decisions
 - `docs/glossary.md`: project terminology
 - `README.md`: installation, attributes, action use, and development commands

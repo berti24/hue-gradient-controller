@@ -1,0 +1,16 @@
+{
+  "name": "hue-gradient-light-card",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "playwright test",
+    "test:prepare": "node scripts/prepare-compat.mjs",
+    "dev": "node scripts/serve.mjs"
+  },
+  "dependencies": { "lit": "3.3.3" },
+  "devDependencies": { "@playwright/test": "1.63.0", "esbuild": "0.28.2" },
+  "engines": { "node": ">=22" }
+}

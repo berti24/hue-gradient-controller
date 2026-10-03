@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import (
+    SIGNAL_CONFIG_ENTRY_CHANGED,
+    ConfigEntry,
+    ConfigEntryChange,
+)
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryError
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .compat import (
     async_refresh_hue_light_states,
@@ -37,12 +42,24 @@ async def async_setup_entry(
         async_create_incompatible_native_hue_issue(hass)
         raise
 
-    selection = frozenset(
-        entry.options.get(CONF_HUE_BRIDGES, [SELECT_ALL_HUE_BRIDGES])
-    )
+    selection = frozenset(entry.options.get(CONF_HUE_BRIDGES, [SELECT_ALL_HUE_BRIDGES]))
     hass.data[DOMAIN] = selection
     async_clear_setup_issues(hass)
     async_update_bridge_selection_issue(hass, selection)
+
+    @callback
+    def async_hue_entry_changed(
+        _change: ConfigEntryChange, hue_entry: ConfigEntry
+    ) -> None:
+        """Keep selection Repairs current when a selected Hue entry changes."""
+        if hue_entry.domain == "hue" and hue_entry.entry_id in selection:
+            async_update_bridge_selection_issue(hass, selection)
+
+    entry.async_on_unload(
+        async_dispatcher_connect(
+            hass, SIGNAL_CONFIG_ENTRY_CHANGED, async_hue_entry_changed
+        )
+    )
     async_register_gradient_services(hass)
     async_refresh_hue_light_states(hass)
     return True

@@ -194,6 +194,11 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# Legacy root-level Node and browser artifacts
+/node_modules/
+/test-results/
+/playwright-report/
+
 # PyPI configuration file
 .pypirc
 

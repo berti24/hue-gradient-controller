@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hue Gradient Card compatibility fixture</title>
+<style>
+@font-face{font-family:Roboto;src:url(/static/fonts/roboto/Roboto-Regular.woff2)}
+:root{--bubble-border-radius:32px;--bubble-main-background-color:var(--secondary-background-color);--bubble-icon-background-color:var(--ha-color-form-background);--bubble-accent-color:var(--primary-color);--bubble-pop-up-border-radius:28px}
+body{font:14px Roboto,sans-serif;margin:24px;background:var(--primary-background-color);color:var(--primary-text-color)}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:700px;max-width:100%;margin-bottom:24px;align-items:start}
+.cards>*{min-width:0}
+.editors{display:flex;gap:20px;flex-wrap:wrap}.editors>hue-gradient-editor{width:352px;max-width:100%}
+#config{max-width:500px;margin-top:24px}
+</style></head><body>
+<h1>Renderer compatibility fixture</h1><div class="cards" id="cards"></div>
+<div class="editors" id="editors"></div><div id="config"></div>
+<script type="module" src="/hue-gradient-light-card/tests/fixture.js"></script></body></html>

@@ -197,8 +197,9 @@ live color state.
 
 Home Assistant Repairs reports an error if the guarded native Hue attribute
 hook is incompatible and a warning if an explicitly selected Hue v2 bridge is
-disabled, removed, ignored, or no longer uses API v2. Selection warnings clear
-after a valid reload; integration-owned issues are removed on unload.
+disabled, removed, ignored, or no longer uses API v2. Selection warnings update
+when native Hue entries change and clear when the selected bridges become
+eligible again; integration-owned issues are removed on unload.
 Persistent issues are also removed if the integration config entry is deleted.
 
 ## Compatibility and privacy
@@ -211,6 +212,23 @@ rather than applying a broad or unsafe patch.
 
 No Hue application key is copied or stored. No additional connection to a Hue
 bridge is opened.
+
+## Dashboard card and compact gradient popup
+
+The optional **Hue Gradient Light** card wraps the original Home Assistant Tile
+or Bubble light button and opens a compact color/white-tone gradient wheel.
+It also supports ordinary light entities without the Python integration.
+**Hue Gradient Editor** can be embedded in original Bubble hash-linked popups.
+Both cards have visual configuration editors.
+
+The built frontend asset ships with this Integration; copying it to `/config/www`
+and registering a dashboard resource is a separate one-time frontend step.
+See [dashboard installation, configuration, Bubble examples and themes](hue-gradient-light-card/README.md).
+
+```yaml
+type: custom:hue-gradient-light-card
+entity: light.living_room_strip
+```
 
 ## Development
 

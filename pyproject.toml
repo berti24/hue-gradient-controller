@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hue-gradient-controller"
-version = "0.2.0"
+version = "0.3.3"
 description = "Gradient controls for native Philips Hue lights in Home Assistant"
 requires-python = ">=3.14.2"
 
@@ -25,6 +25,14 @@ override-dependencies = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["custom_components.hue_gradient_controller*"]
+
+[tool.setuptools.package-data]
+"custom_components.hue_gradient_controller" = [
+  "*.json", "*.yaml", "translations/*.json", "brand/*.png", "www/*.js", "www/*.txt",
+]
 
 [tool.ruff]
 target-version = "py314"
