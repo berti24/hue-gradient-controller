@@ -15,7 +15,7 @@ Ordinary light power, brightness, RGB and temperature use native light services.
    Python integration.
 3. Enable Advanced mode in your profile. Open **Settings → Dashboards →
    three-dot menu → Resources → Add resource**. Enter
-   `/local/hue-gradient-light-card.js?v=0.3.3` and choose **JavaScript module**.
+   `/local/hue-gradient-light-card.js?v=0.3.4` and choose **JavaScript module**.
    Use the installed release version when updating in the future.
 4. Hard-refresh the browser/companion app frontend. Add a card and search for
    **Hue Gradient Light** or **Hue Gradient Editor**.
@@ -34,7 +34,7 @@ For YAML-managed dashboard resources:
 ```yaml
 lovelace:
   resources:
-    - url: /local/hue-gradient-light-card.js?v=0.3.3
+    - url: /local/hue-gradient-light-card.js?v=0.3.4
       type: module
 ```
 

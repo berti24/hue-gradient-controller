@@ -11,7 +11,7 @@ let pointId = 0;
 export class HueGradientEditor extends LitElement {
   static properties = {
     _config: { state: true }, _points: { state: true }, _selected: { state: true },
-    _whites: { state: true }, _brightness: { state: true }, _mode: { state: true },
+    _whites: { state: true }, _brightness: { state: true }, _kelvin: { state: true }, _mode: { state: true },
     _error: { state: true }, _snapshot: { state: true }, _menu: { state: true },
     _busyAction: { state: true }, _transition: { state: true }, _hass: { state: true },
   };
@@ -39,6 +39,8 @@ export class HueGradientEditor extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback(); this._writer?.dispose(); this._writer = undefined;
     clearTimeout(this._reconcileTimer); this._drag = undefined;
+    // A reused dashboard editor must not retain feedback whose timer was canceled.
+    this._optimistic = false; this._adoptReported();
   }
   _ensureWriter() {
     if (!this.isConnected || !this._config || !this.hass || this._writer) return;
@@ -102,6 +104,7 @@ export class HueGradientEditor extends LitElement {
     this._placePoints();
     this._selected = Math.min(this._selected, this._points.length - 1);
     this._brightness = this.state?.state === "off" ? 0 : Math.round((this.state?.attributes.brightness ?? 255) / 255 * 100);
+    this._kelvin = this.state?.attributes.color_temp_kelvin ?? this.caps.minKelvin;
     this._mode = this.state?.attributes.gradient_mode;
   }
   _placePoints() {
@@ -213,7 +216,8 @@ export class HueGradientEditor extends LitElement {
     this._queue({ key: "brightness", domain: "light", service: this._brightness === 0 ? "turn_off" : "turn_on", data });
   }
   _temperatureInput(event) {
-    this._queue({ domain: "light", service: "turn_on", data: { color_temp_kelvin: Number(event.target.value),
+    this._kelvin = Number(event.target.value);
+    this._queue({ domain: "light", service: "turn_on", data: { color_temp_kelvin: this._kelvin,
       ...this.caps.transition ? { transition: this._transition } : {} } });
   }
   _power() {
@@ -334,7 +338,7 @@ export class HueGradientEditor extends LitElement {
       ${caps.temperature && !caps.gradient ? html`<div class="temperature">
         <label for="kelvin">White temperature</label><div class="row slider-row">
           <input id="kelvin" type="range" aria-label="White temperature in Kelvin" min=${caps.minKelvin} max=${caps.maxKelvin} step="1"
-            .value=${String(this.state?.attributes.color_temp_kelvin ?? caps.minKelvin)} ?disabled=${disabled}
+            .value=${String(this._kelvin ?? caps.minKelvin)} ?disabled=${disabled}
             @input=${this._temperatureInput} @change=${()=>this._writer?.flush()}>
         </div></div>` : nothing}
       ${caps.brightness ? html`<div class="row slider-row"><ha-icon icon="mdi:brightness-6"></ha-icon>

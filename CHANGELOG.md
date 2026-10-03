@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] - 2026-10-03
+
+### Fixed
+
+- Restore reported colors when an editor reconnects, so unconfirmed local edits
+  cannot remain visible after their reconciliation timer is canceled.
+- Preserve the latest Kelvin slider value through intermediate state echoes;
+  reconcile to reported temperature after the allowance or a rejected command.
+- Cover editor reconnection during and after writes, delayed temperature echoes,
+  and temperature command rejection with browser regressions.
+
 ## [0.3.3] - 2026-10-03
 
 ### Changed
