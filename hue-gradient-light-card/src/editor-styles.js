@@ -25,7 +25,8 @@ export const editorStyles = css`
     padding:var(--hgc-padding,16px);
     box-shadow:var(--hgc-shadow,var(--ha-card-box-shadow,none));
   }
-  .editor.embedded { border:0; background:transparent; padding:var(--hgc-embedded-padding,0px); box-shadow:none; }
+  .editor.no-card-background { border:0; background:transparent; box-shadow:none; }
+  .editor.embedded.no-card-background { padding:var(--hgc-embedded-padding,0px); }
   .handle { width:var(--hgc-handle-width,40px); height:var(--hgc-handle-height,4px); border-radius:var(--_radius); background:var(--_muted); opacity:var(--hgc-handle-opacity,.4); margin:0 auto var(--_gap); }
   header { display:flex; align-items:center; gap:var(--_gap); margin-bottom:var(--_gap); }
   h2 { font-size:var(--hgc-title-size,var(--ha-font-size-l,16px)); font-weight:var(--hgc-title-weight,500); margin:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -37,6 +38,7 @@ export const editorStyles = css`
   button, select, .slider-row { border:var(--hgc-control-border-width,1px) solid var(--_border); background:var(--_control); border-radius:var(--_radius); }
   button { cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:var(--hgc-button-gap,8px); min-height:var(--hgc-control-height,44px); padding:var(--hgc-button-padding,8px 14px); }
   button.icon { border:0; background:transparent; padding:var(--hgc-icon-padding,6px); min-width:var(--hgc-touch-target,44px); }
+  button.header-icon { flex-shrink:0; border-radius:50%; background:var(--hgc-icon-gradient,none), linear-gradient(var(--hgc-icon-surface,var(--_control)),var(--hgc-icon-surface,var(--_control))); }
   button:disabled, input:disabled, select:disabled { opacity:var(--hgc-disabled-opacity,.45); cursor:default; }
   :focus-visible { outline:var(--hgc-focus-width,3px) solid var(--_focus); outline-offset:var(--hgc-focus-offset,3px); }
   ha-icon { --mdc-icon-size:var(--hgc-icon-size,24px); }

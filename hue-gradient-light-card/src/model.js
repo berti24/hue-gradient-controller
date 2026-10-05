@@ -7,6 +7,11 @@ export const MODE_NAMES = Object.freeze({
 });
 const COLOR_MODES = ["hs", "xy", "rgb", "rgbw", "rgbww"];
 export const SUBTITLE_DEFAULTS = Object.freeze({show_state:true,show_brightness:true,show_color_count:false,show_mode:false});
+const SUBTITLE_KEYS = {show_state:"state",show_brightness:"brightness",show_color_count:"hgc_color_count",show_mode:"hgc_gradient_mode"};
+export function subtitleFields(config) {
+  if (config.state_content != null) return typeof config.state_content === "string" ? [config.state_content] : config.state_content;
+  return Object.entries(SUBTITLE_DEFAULTS).filter(([key,value])=>config[key] ?? value).map(([key])=>SUBTITLE_KEYS[key]);
+}
 export const rgbValid = (rgb) => Array.isArray(rgb) && rgb.length === 3 &&
   rgb.every((n) => Number.isInteger(n) && n >= 0 && n <= 255);
 export const xyValid = (xy) => Array.isArray(xy) && xy.length === 2 &&
@@ -16,6 +21,10 @@ export const available = (state) => Boolean(state && !["unavailable", "unknown"]
 export function normalizeConfig(input, editor = false) {
   if (!input || !/^light\.[a-z0-9_]+$/.test(input.entity ?? "")) throw Error("Choose a light entity");
   const config = { ...input };
+  for (const [key,value] of [["icon_gradient_background",false],...editor?[]:[["color_background",true],["show_brightness_slider",false]]]) {
+    if (config[key] != null && typeof config[key] !== "boolean") throw Error(`${key} must be true or false`);
+    config[key] ??= value;
+  }
   for (const key of ["name", "icon"]) {
     if (config[key] != null && typeof config[key] !== "string") throw Error(`${key} must be text`);
     if (!config[key]?.trim()) delete config[key];
@@ -24,7 +33,16 @@ export function normalizeConfig(input, editor = false) {
   if (editor) {
     if (config.embedded != null && typeof config.embedded !== "boolean") throw Error("embedded must be true or false");
     config.embedded ??= false;
+    if (config.card_background != null && typeof config.card_background !== "boolean") throw Error("card_background must be true or false");
+    config.card_background ??= !config.embedded;
   } else {
+    if (config.state_content != null) {
+      const fields = typeof config.state_content === "string" ? [config.state_content] : config.state_content;
+      if (!Array.isArray(fields) || !fields.every(field=>typeof field === "string" && field.trim()) || new Set(fields).size !== fields.length) {
+        throw Error("Subtitle must contain unique state or attribute names");
+      }
+      config.state_content = [...fields];
+    }
     for (const [key, value] of Object.entries(SUBTITLE_DEFAULTS)) {
       if (config[key] != null && typeof config[key] !== "boolean") throw Error(`${key} must be true or false`);
       config[key] ??= value;
@@ -46,16 +64,42 @@ export function subtitleValues(hass, config, gradientActive) {
   if (!state) return {};
   const caps = capabilities(hass, config.entity), attrs = state.attributes;
   const values = {};
-  if (config.show_state) values.state = hass.formatEntityState?.(state) ?? state.state;
-  if (config.show_brightness && caps.available && caps.brightness && (state.state === "off" || Number.isFinite(attrs.brightness))) {
+  const fields = subtitleFields(config);
+  if (fields.includes("state")) values.state = hass.formatEntityState?.(state) ?? state.state;
+  if (fields.includes("brightness") && caps.available && caps.brightness && (state.state === "off" || Number.isFinite(attrs.brightness))) {
     values.brightness = `${state.state === "off" ? 0 : Math.round(attrs.brightness / 255 * 100)}%`;
   }
   const colors = currentColors(state, caps.gradient && gradientActive);
-  if (config.show_color_count && caps.available && colors.length) values.hgc_color_count = `${colors.length} ${colors.length === 1 ? "color" : "colors"}`;
-  if (config.show_mode && caps.available && caps.gradient && gradientActive && colors.length > 1 && MODE_NAMES[attrs.gradient_mode]) {
+  if (fields.includes("hgc_color_count") && caps.available && colors.length) values.hgc_color_count = `${colors.length} ${colors.length === 1 ? "color" : "colors"}`;
+  if (fields.includes("hgc_gradient_mode") && caps.available && caps.gradient && gradientActive && colors.length > 1 && MODE_NAMES[attrs.gradient_mode]) {
     values.hgc_gradient_mode = MODE_NAMES[attrs.gradient_mode];
   }
-  return values;
+  // Match Tile's native attribute picker, including its timestamp choices.
+  for (const key of fields) {
+    if (Object.values(SUBTITLE_KEYS).includes(key)) continue;
+    if (["last_changed","last_updated"].includes(key) && state[key]) values[key] = new Date(state[key]).toLocaleString(hass.locale?.language);
+    else if (Object.hasOwn(attrs,key)) values[key] = hass.formatEntityAttributeValue?.(state,key) ?? String(attrs[key]);
+  }
+  return Object.fromEntries(fields.filter(key=>Object.hasOwn(values,key)).map(key=>[key,values[key]]));
+}
+
+// Prefer the exact opposite hue. If already present, search symmetrically around
+// it for the nearest unused RGB color. A neutral point starts at full saturation.
+export function nextColor(colors) {
+  const [h,s] = rgbHsv(colors.at(-1) ?? [255,0,0]);
+  const used = new Set(colors.map(rgb=>rgb.join(",")));
+  for (let offset=0;offset<=180;offset++) {
+    for (const direction of [1,-1]) {
+      const rgb = hsvRgb(h+180+offset*direction,s || 1);
+      if (!used.has(rgb.join(","))) return rgb;
+    }
+  }
+  // Very low saturation can quantize the whole wheel to used colors.
+  for (let offset=0;offset<360;offset++) {
+    const rgb = hsvRgb(h+180+offset,1);
+    if (!used.has(rgb.join(","))) return rgb;
+  }
+  throw Error("No unused color is available");
 }
 
 export function capabilities(hass, entity) {
@@ -98,19 +142,21 @@ export function gradientDisplay(attrs) {
 }
 
 // Native Hue color_mode distinguishes Kelvin from XY, but not gradient from XY.
-// Event-stream updates changing native XY while retaining identical historical
-// points must stop showing those points. No frontend polling or bridge access.
+// Use native XY, not derived RGB/HS, to detect solid-color changes. A changed
+// gradient mode is also a palette update, even when its points stay identical.
+// No frontend polling or bridge access.
 export class AppearanceTracker {
   observe(state) {
     const attrs = state?.attributes ?? {};
     if (!available(state)) return !this.solid && gradientDisplay(attrs).length > 1;
     const points = JSON.stringify(attrs.gradient_colors_xy ?? []);
-    const native = JSON.stringify([attrs.color_mode, attrs.xy_color, attrs.rgb_color, attrs.hs_color]);
+    const native = JSON.stringify([attrs.color_mode, attrs.xy_color]);
     if (this.points !== undefined) {
-      if (points !== this.points) this.solid = false;
+      if (points !== this.points || attrs.gradient_mode !== this.mode) this.solid = false;
       else if (state.state === "on" && this.native !== undefined && native !== this.native) this.solid = true;
     }
     this.points = points;
+    this.mode = attrs.gradient_mode;
     // HA clears native color attributes when off. Keep the last on-state color
     // so an ordinary power cycle is not mistaken for switching to solid color.
     if (state.state === "on") this.native = native;

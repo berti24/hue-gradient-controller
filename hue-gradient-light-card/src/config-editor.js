@@ -1,11 +1,15 @@
 import { LitElement, html, css, nothing } from "lit";
-import { normalizeConfig, SUBTITLE_DEFAULTS } from "./model.js";
+import { normalizeConfig, subtitleFields } from "./model.js";
+
+export const CARD_VERSION = __HGC_VERSION__;
 
 const LABELS = {
   entity: "Entity", design: "Design", name: "Name", icon: "Icon",
   color_background_opacity: "Light color background opacity", embedded: "Embedded",
-  show_state: "Subtitle: state", show_brightness: "Subtitle: brightness",
-  show_color_count: "Subtitle: color count", show_mode: "Subtitle: mode",
+  color_background: "Light color card background", icon_gradient_background: "Gradient icon background",
+  state_content: "Subtitle",
+  card_background: "Card background",
+  show_brightness_slider: "Brightness slider",
 };
 export class ConfigEditor extends LitElement {
   static properties = { hass: {}, _config: { state: true }, _error: { state: true } };
@@ -20,6 +24,7 @@ export class ConfigEditor extends LitElement {
   _changed(event) {
     event.stopPropagation();
     const candidate = { ...this._config, ...event.detail.value };
+    if (Object.hasOwn(event.detail.value,"state_content")) candidate.state_content = event.detail.value.state_content ?? [];
     try {
       this._config = normalizeConfig(candidate, this.isEmbeddedEditor);
       this._error = "";
@@ -35,14 +40,26 @@ export class ConfigEditor extends LitElement {
       ] } } }],
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
-      ...this.isEmbeddedEditor ? [] : Object.keys(SUBTITLE_DEFAULTS).map(name=>({name,selector:{boolean:{}}})),
-      ...this.isEmbeddedEditor ? [{ name: "embedded", selector: { boolean: {} } }] : [
+      ...this.isEmbeddedEditor ? [] : [{name:"state_content",selector:{ui_state_content:{}},context:{filter_entity:"entity"}}],
+      ...!this.isEmbeddedEditor && (this._config.design ?? "tile") === "tile" ? [{name:"show_brightness_slider",selector:{boolean:{}}}] : [],
+      { name: "icon_gradient_background", selector: { boolean: {} } },
+      ...this.isEmbeddedEditor ? [
+        { name: "embedded", selector: { boolean: {} } },
+        { name: "card_background", selector: { boolean: {} } },
+      ] : [
+        { name: "color_background", selector: { boolean: {} } },
         { name: "color_background_opacity", selector: { number: { min: 0, max: 100, step: 1, mode: "slider", unit_of_measurement: "%" } } },
       ],
     ];
-    const data = this.isEmbeddedEditor ? { embedded: false, ...this._config } : { design: "tile", color_background_opacity: 70, ...SUBTITLE_DEFAULTS, ...this._config };
+    const data = this.isEmbeddedEditor ? { embedded: false, icon_gradient_background:false, ...this._config, card_background:this._config.card_background ?? !this._config.embedded } : { design: "tile", show_brightness_slider:false, color_background:true, icon_gradient_background:false, color_background_opacity: 70, ...this._config, state_content:subtitleFields(this._config) };
+    // Offer the integration's display fields through the same native picker as
+    // Tile. This scoped hass copy is editor presentation only.
+    const entity = this._config.entity, source = this.hass, state = source?.states?.[entity];
+    const formHass = state ? {...source,states:{...source.states,[entity]:{...state,attributes:{...state.attributes,hgc_color_count:"",hgc_gradient_mode:""}}},
+      formatEntityAttributeName:(s,key)=>({hgc_color_count:"Color count",hgc_gradient_mode:"Gradient mode"}[key] ?? source.formatEntityAttributeName(s,key))} : source;
     return html`
-      <ha-form .hass=${this.hass} .schema=${schema} .data=${data}
+      <p class="version">Hue Gradient Card ${CARD_VERSION}</p>
+      <ha-form .hass=${formHass} .schema=${schema} .data=${data}
         .computeLabel=${(field) => LABELS[field.name]} @value-changed=${this._changed}></ha-form>
       ${!this.isEmbeddedEditor && data.design === "bubble" && !customElements.get("bubble-card") ? html`
         <p role="status">Install Bubble Card in HACS and register its dashboard resource. A Tile is shown until Bubble Card loads.</p>` : nothing}

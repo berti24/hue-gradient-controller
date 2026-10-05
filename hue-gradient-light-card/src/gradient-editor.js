@@ -1,7 +1,7 @@
 import { LitElement, html, svg, nothing } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import { styleMap } from "lit/directives/style-map.js";
-import { normalizeConfig, capabilities, AppearanceTracker, currentColors, validSnapshot } from "./model.js";
+import { normalizeConfig, capabilities, AppearanceTracker, currentColors, validSnapshot, nextColor, colorLayer } from "./model.js";
 import { discPoint, paletteColor, markerPosition, connectorPath, separateMarkers } from "./palette.js";
 import { LiveWriter, serialize } from "./writes.js";
 import { editorStyles } from "./editor-styles.js";
@@ -145,7 +145,7 @@ export class HueGradientEditor extends LitElement {
   }
   _add() {
     if (!this.caps.gradient || this._points.length >= this.caps.capacity) return;
-    this._points = [...this._points, { id: ++pointId, rgb: [...this._points[this._selected].rgb] }];
+    this._points = [...this._points, { id: ++pointId, rgb: nextColor(this.points) }];
     this._placePoints();
     this._selected = this._points.length - 1;
     this._colorCommand(true);
@@ -294,19 +294,18 @@ export class HueGradientEditor extends LitElement {
     const caps = this.caps, disabled = !caps.available || this._busyAction;
     const positions = this._points.map(point=>point.picker ?? markerPosition(point.rgb,this._whites));
     const path = connectorPath(positions);
-    const on=this.state?.state === "on", powerRgb=currentColors(this.state,caps.gradient&&this._gradientActive)[0];
-    const whiteOnLight=powerRgb&&!this.hass.themes?.darkMode&&powerRgb.reduce((sum,n,i)=>sum+n*[.2126,.7152,.0722][i],0)>180;
-    return html`<section class=${`editor${this._config.embedded ? " embedded" : ""}${this._menu ? " menu-open" : ""}`} aria-label=${`${this.name} light controls`}
+    const on=this.state?.state === "on", reportedColors=currentColors(this.state,caps.gradient&&this._gradientActive), powerRgb=reportedColors[0];
+    const iconBackground=on&&this._config.icon_gradient_background?colorLayer(reportedColors,35):undefined;
+    return html`<section class=${`editor${this._config.embedded ? " embedded" : ""}${!this._config.card_background ? " no-card-background" : ""}${this._menu ? " menu-open" : ""}`} aria-label=${`${this.name} light controls`}
       @focusin=${e=>{if(this._menu&&!e.composedPath().some(node=>node.localName==="details"))this._closeMenu();}}
       @keydown=${(e)=>{if(this._menu&&e.key==="Escape"){e.preventDefault();e.stopPropagation();this._closeMenu();this.renderRoot.querySelector("summary")?.focus();}}}>
       ${this._menu ? html`<div class="menu-backdrop" aria-hidden="true" @click=${this._closeMenu} @pointerdown=${(e)=>e.stopPropagation()}></div>` : nothing}
-      ${this._config.embedded ? html`<div class="embedded-tools">${this._overflow()}</div>` : html`
-        <div class="handle" aria-hidden="true"></div>
-        <header><button class=${`header-icon icon${on ? " on" : ""}`} style=${styleMap({"--hgc-power-color":powerRgb&&!whiteOnLight?`rgb(${powerRgb.join(",")})`:undefined})} aria-label=${on ? "Turn off" : "Turn on"} ?disabled=${disabled} @click=${this._power}>
+      ${!this._config.embedded ? html`<div class="handle" aria-hidden="true"></div>` : nothing}
+        <header><button class=${`header-icon icon${on ? " on" : ""}`} style=${styleMap({"--hgc-power-color":powerRgb?`rgb(${powerRgb.join(",")})`:undefined,"--hgc-icon-gradient":iconBackground})} aria-label=${on ? "Turn off" : "Turn on"} ?disabled=${disabled} @click=${this._power}>
           <ha-icon .icon=${this.icon}></ha-icon></button><h2>${this.name}</h2>
           ${this._overflow()}
-          ${this.popup ? html`<button class="icon" aria-label="Close gradient editor" @click=${() => this.dispatchEvent(new CustomEvent("hgc-close", { bubbles:true,composed:true }))}><ha-icon icon="mdi:close"></ha-icon></button>` : nothing}
-        </header>`}
+          ${this.popup && !this._config.embedded ? html`<button class="icon" aria-label="Close gradient editor" @click=${() => this.dispatchEvent(new CustomEvent("hgc-close", { bubbles:true,composed:true }))}><ha-icon icon="mdi:close"></ha-icon></button>` : nothing}
+        </header>
       ${!caps.available ? html`<p class="status" role="status">${this.state ? "Light unavailable" : `Entity ${this._config.entity} not found`}</p>` : nothing}
       ${caps.color ? html`
         <div class="wheel" role="group" aria-label=${this._whites ? "White-tone color palette" : "Hue and saturation color wheel"}

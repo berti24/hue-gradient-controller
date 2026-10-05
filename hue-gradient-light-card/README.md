@@ -15,7 +15,7 @@ Ordinary light power, brightness, RGB and temperature use native light services.
    Python integration.
 3. Enable Advanced mode in your profile. Open **Settings → Dashboards →
    three-dot menu → Resources → Add resource**. Enter
-   `/local/hue-gradient-light-card.js?v=0.3.4` and choose **JavaScript module**.
+   `/local/hue-gradient-light-card.js?v=0.4.2` and choose **JavaScript module**.
    Use the installed release version when updating in the future.
 4. Hard-refresh the browser/companion app frontend. Add a card and search for
    **Hue Gradient Light** or **Hue Gradient Editor**.
@@ -34,7 +34,7 @@ For YAML-managed dashboard resources:
 ```yaml
 lovelace:
   resources:
-    - url: /local/hue-gradient-light-card.js?v=0.3.4
+    - url: /local/hue-gradient-light-card.js?v=0.4.2
       type: module
 ```
 
@@ -55,10 +55,10 @@ All public card options are available in its visual editor:
 | Design | `design` | `tile`; "Tile like" (`tile`) or "Bubble like" (`bubble`) |
 | Name | `name` | Entity's displayed name |
 | Icon | `icon` | Entity icon/native light fallback |
-| Subtitle: state | `show_state` | `true` |
-| Subtitle: brightness | `show_brightness` | `true` |
-| Subtitle: color count | `show_color_count` | `false` |
-| Subtitle: mode | `show_mode` | `false` |
+| Subtitle | `state_content` | `['state', 'brightness']`; native Tile picker; supports ordered state/attribute names, `hgc_color_count`, `hgc_gradient_mode`; `[]` hides the line |
+| Brightness slider | `show_brightness_slider` | `false`; Tile-like cards only, adds a native brightness control below the header |
+| Gradient icon background | `icon_gradient_background` | `false`; also supported by the standalone editor and forwarded to its popup |
+| Light color card background | `color_background` | `true` |
 | Light color background opacity | `color_background_opacity` | 70; number from 0 to 100 |
 
 ```yaml
@@ -67,10 +67,13 @@ entity: light.living_room_strip
 design: bubble
 name: Living room strip
 icon: mdi:led-strip-variant
-show_state: true
-show_brightness: true
-show_color_count: true
-show_mode: true
+state_content:
+  - state
+  - brightness
+  - hgc_color_count
+  - hgc_gradient_mode
+color_background: true
+icon_gradient_background: false
 color_background_opacity: 70
 ```
 
@@ -81,13 +84,37 @@ renderer. The card delegates masonry size and Sections grid rules. Tile and
 Bubble use their original distinct footprints, padding, icon geometry and fonts.
 The icon toggles power; the main card opens the compact editor.
 
-The subtitle uses the selected fields in that order. Disabling all four hides
-the line. Brightness is zero while off and omitted for lights without brightness
+Enable **Brightness slider** for the Tile-like design to add a second row:
+
+```yaml
+type: custom:hue-gradient-light-card
+entity: light.living_room_strip
+design: tile
+show_brightness_slider: true
+```
+
+The filled slider blends all current gradient colors, with a dimmed gradient
+across the remaining track. It follows live color changes independently of the
+card background option. Ordinary color/temperature lights use their current
+color; lights without brightness support omit the feature. Native Tile handles
+keyboard/touch interactions and the extra dashboard row. Adjusting brightness
+turns an off light on; unavailable lights cannot send commands. Bubble keeps
+its original layout and ignores this Tile-only option.
+
+Both configuration editors show the version bundled in the loaded JavaScript.
+The subtitle uses Home Assistant's native Tile option picker: add, remove and
+reorder fields. Existing `show_state`, `show_brightness`, `show_color_count` and
+`show_mode` YAML booleans still work when `state_content` is absent; an explicit
+`state_content` takes precedence. Selecting no fields hides the line.
+Brightness is zero while off and omitted for lights without brightness
 support. Color count follows the currently reported color/gradient appearance;
 mode appears only for an eligible active multi-point gradient. Presentation
 values are scoped to the owned native renderer and never published to HA state.
 
-The light's color layer covers the native card surface. Opacity 0 retains the
+The light's color layer covers the native card surface by default; disable
+`color_background` to keep the theme surface. This setting is independent of
+`icon_gradient_background`, which blends all reported colors around the icon.
+While on, the icon itself uses the first reported light color. Opacity 0 retains the
 normal theme surface, 70 composites the light colors over it, and 100 shows full
 colors. It never fades controls or the card itself. Off uses the theme surface;
 unavailable/missing lights disable commands. No usable color data uses the native
@@ -95,10 +122,12 @@ light state-color theme fallback. RGB/hex gradient attributes are gamut-aware
 display values; exact `gradient_colors_xy` is the reported gradient authority.
 
 Native temperature state takes precedence over retained historical gradient
-attributes. During a session, a native color change with unchanged xy stops
-switches to a solid background; new gradient stops switch back. Hue/HA expose no
-unambiguous active-gradient flag for a fresh frontend session with stale unchanged
-stops. That initial ambiguity cannot be resolved from the supplied state alone.
+attributes. During a session, a native XY change with unchanged stops and mode
+switches to a solid background; new gradient stops or a mode change switch back.
+Derived RGB/HS updates do not suppress the palette, including in Pixelated mode.
+Hue/HA expose no unambiguous active-gradient flag for a fresh frontend session
+with stale unchanged stops. That initial ambiguity cannot be resolved from the
+supplied state alone.
 
 ## Compact popup controls
 
@@ -117,7 +146,9 @@ stops. That initial ambiguity cannot be resolved from the supplied state alone.
   Coincident marker targets initially separate slightly so each is reachable.
   During dragging, the selected marker follows the pointer continuously and
   neighboring markers keep their positions, including around neutral white.
-- Add color appends a copy of the selected point. Capacity is reported by the
+- Add color appends a point opposite the last color's hue on the color wheel.
+  If that color is already used, it chooses the nearest unused color; neutral
+  points start a saturated color. Capacity is reported by the
   light; Add disables at that maximum. Remaining points renumber immediately.
 - Whites edits the **same** gradient list on a warm/neutral/cool RGB palette.
   It has no Kelvin claims. Off-palette points retain their actual color, have a
@@ -153,9 +184,24 @@ authority. Disconnect cancels unsent work, not service calls already accepted.
 
 ## Embed inside an original Bubble popup
 
-The editor has its own visual editor with Entity, Name, Icon and Embedded. The
-`embedded` boolean (default false) removes duplicate title/close controls and
-inherits the host surface. Its compact overflow remains available.
+The editor has its own visual editor with Entity, Name, Icon, Embedded and
+Card background. The
+`embedded` boolean (default false) removes the popup handle and close control and
+inherits the host surface. The light icon, circular icon background, title,
+power control and overflow remain visible. The editor also exposes
+`icon_gradient_background` (default false) in YAML and its visual editor.
+
+Enable **Card background** (`card_background: true`) to give an embedded editor
+its own theme surface, border, shadow and padding on a dashboard. Set it to
+`false` for a transparent editor. When omitted, it defaults to `true` for a
+standalone editor and `false` when `embedded: true`, preserving existing layouts.
+
+```yaml
+type: custom:hue-gradient-editor
+entity: light.living_room_strip
+embedded: true
+card_background: true
+```
 
 Bubble **v3.2.0+** supports standalone `cards:` content. This installation has
 Bubble v3.4.1; the compatibility fixture uses the published original asset.

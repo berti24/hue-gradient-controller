@@ -5,6 +5,58 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-10-05
+
+### Added
+
+- Add an optional second-row brightness slider to Tile-like dashboard cards.
+  Its fill blends all current gradient colors, with a dimmed gradient on the
+  remaining track. Native Tile controls handle keyboard, touch and layout;
+  brightness writes share the popup's per-entity write lane.
+- Use a patch release for this backward-compatible option at the user's request.
+
+## [0.4.1] - 2026-10-05
+
+### Added
+
+- Add a Card background setting to the gradient editor, independently of
+  Embedded mode. Enable it to show a themed card surface, border, shadow and
+  padding on dashboards. Existing embedded editors remain transparent by default.
+
+## [0.4.0] - 2026-10-05
+
+### Added
+
+- Show the bundled card version in both visual configuration editors.
+- Add a native Tile subtitle picker with ordered fields; existing subtitle
+  booleans remain supported for YAML configurations.
+- Make dashboard light-color backgrounds optional and enabled by default;
+  add an optional gradient background around light icons in cards and editors.
+
+### Changed
+
+- Add new color points opposite the last color's wheel hue, choosing the
+  closest unused color when the opposite color is already in the palette.
+- Color active light icons with the first reported light color, and retain
+  the icon, circular background and light name in embedded editors.
+
+### Fixed
+
+- Restore the editor/popup icon background and remove the extra theme border
+  and shadow around Bubble card buttons.
+
+## [0.3.5] - 2026-10-05
+
+### Fixed
+
+- Keep reported gradient colors visible through derived display-color updates,
+  including in Pixelated mode, instead of collapsing the card and editor to
+  one color.
+- Ignore derived RGB/HS-only changes when tracking gradient appearance, and
+  restore the palette on gradient mode changes even when its points are unchanged.
+- Cover four-color Pixelated updates, mode recovery and both palette views with
+  model and desktop/mobile browser regressions.
+
 ## [0.3.4] - 2026-10-03
 
 ### Fixed

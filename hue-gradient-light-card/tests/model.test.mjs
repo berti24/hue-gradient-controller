@@ -1,16 +1,44 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeConfig, capabilities, gradientDisplay, AppearanceTracker, currentColors, colorLayer, validSnapshot, SUBTITLE_DEFAULTS, subtitleValues } from "../src/model.js";
+import { normalizeConfig, capabilities, gradientDisplay, AppearanceTracker, currentColors, colorLayer, validSnapshot, SUBTITLE_DEFAULTS, subtitleValues, subtitleFields, nextColor, rgbHsv } from "../src/model.js";
 import { markerPosition, paletteColor, connectorPath, separateMarkers } from "../src/palette.js";
 const attrs={supported_color_modes:["xy","color_temp"],color_mode:"xy",rgb_color:[255,0,0],xy_color:[.6,.3],
   gradient_capable:true,gradient_points_capable:4,gradient_modes:["interpolated_palette","segmented_palette"],gradient_mode:"interpolated_palette",
   gradient_colors_xy:[[.6,.3],[.2,.1]],gradient_colors_rgb:[[255,0,0],[0,0,255]]};
 const hass={states:{"light.strip":{state:"on",attributes:attrs}},entities:{"light.strip":{platform:"hue"}},services:{hue_gradient_controller:{set_gradient:{}}}};
 test("configuration defaults, overrides and validation",()=>{
-  assert.deepEqual(normalizeConfig({entity:"light.strip",name:"",icon:" "}),{entity:"light.strip",design:"tile",color_background_opacity:70,...SUBTITLE_DEFAULTS});
+  assert.deepEqual(normalizeConfig({entity:"light.strip",name:"",icon:" "}),{entity:"light.strip",design:"tile",show_brightness_slider:false,color_background:true,icon_gradient_background:false,color_background_opacity:70,...SUBTITLE_DEFAULTS});
   assert.equal(normalizeConfig({entity:"light.strip",name:" Custom "}).name,"Custom");
   assert.equal(normalizeConfig({entity:"light.strip"},true).embedded,false);
-  for(const bad of [{entity:"sensor.x"},{entity:"light.x",design:"oops"},{entity:"light.x",color_background_opacity:101},{entity:"light.x",color_background_opacity:"70"},{entity:"light.x",show_mode:"true"}])assert.throws(()=>normalizeConfig(bad));
+  assert.equal(normalizeConfig({entity:"light.strip",show_brightness_slider:true}).show_brightness_slider,true);
+  assert.throws(()=>normalizeConfig({entity:"light.strip",show_brightness_slider:"yes"}));
+  for(const bad of [{entity:"sensor.x"},{entity:"light.x",design:"oops"},{entity:"light.x",color_background_opacity:101},{entity:"light.x",color_background_opacity:"70"},{entity:"light.x",show_mode:"true"},{entity:"light.x",color_background:1},{entity:"light.x",icon_gradient_background:"yes"},{entity:"light.x",state_content:42},{entity:"light.x",state_content:["state","state"]}])assert.throws(()=>normalizeConfig(bad));
+});
+test("new colors oppose the last hue and stay unique across repeated additions",()=>{
+  assert.deepEqual(nextColor([[255,0,0]]),[0,255,255]);
+  const colors=[[255,0,0],[0,255,255]];
+  const next=nextColor(colors);
+  assert.ok(Math.abs(rgbHsv(next)[0])<=1);
+  assert.ok(!colors.some(rgb=>String(rgb)===String(next)));
+  for(const initial of [[255,255,255],[0,0,0],[254,255,255],[255,130,10]]){
+    const palette=[initial];
+    for(let i=0;i<7;i++)palette.push(nextColor(palette));
+    assert.equal(new Set(palette.map(String)).size,palette.length);
+  }
+});
+test("editor background follows embedding by default and accepts independent overrides",()=>{
+  for(const embedded of [true,false]){
+    assert.equal(normalizeConfig({entity:"light.strip",embedded},true).card_background,!embedded);
+    for(const card_background of [true,false])assert.equal(normalizeConfig({entity:"light.strip",embedded,card_background},true).card_background,card_background);
+  }
+  assert.throws(()=>normalizeConfig({entity:"light.strip",card_background:"true"},true),/card_background/);
+});
+test("subtitle picker preserves order, legacy options, empty selection and native attributes",()=>{
+  assert.deepEqual(subtitleFields({show_state:false,show_mode:true}),["brightness","hgc_gradient_mode"]);
+  const config=normalizeConfig({entity:"light.strip",state_content:["hgc_gradient_mode","hgc_color_count","state","xy_color"]});
+  assert.deepEqual(Object.keys(subtitleValues(hass,config,true)),config.state_content);
+  assert.deepEqual(subtitleValues(hass,{...config,state_content:[]},true),{});
+  assert.deepEqual(normalizeConfig({entity:"light.strip",state_content:"state"}).state_content,["state"]);
 });
 test("subtitle options are independent and reflect reported capabilities and gradient appearance",()=>{
   const config=normalizeConfig({entity:"light.strip",show_color_count:true,show_mode:true});
@@ -61,6 +89,34 @@ test("opacity affects only color layer, including whites",()=>{
   assert.equal(colorLayer([[255,255,255]],0),"none");
   assert.match(colorLayer([[255,255,255]],70),/rgba\(255,255,255,0.7\)/);
   assert.match(colorLayer([[255,0,0],[0,0,255]],100),/rgba\(255,0,0,1\)/);
+});
+test("four Pixelated colors survive native display-color updates",()=>{
+  const tracker=new AppearanceTracker();
+  const palette={...attrs,gradient_mode:"random_pixelated",
+    gradient_colors_xy:[[.191,.676],[.221,.167],[.363,.158],[.541,.389]],
+    gradient_colors_rgb:[[60,255,72],[138,135,255],[240,64,255],[255,162,76]],
+    xy_color:[.1909,.6831],rgb_color:[59,255,67],hs_color:[122.449,76.863]};
+  const state={state:"on",attributes:palette};
+  assert.equal(currentColors(state,tracker.observe(state)).length,4);
+  const displayUpdate={...state,attributes:{...palette,rgb_color:[60,255,68],hs_color:[122.46,76.47]}};
+  assert.equal(currentColors(displayUpdate,tracker.observe(displayUpdate)).length,4);
+});
+test("gradient mode updates recover retained points without changing their colors",()=>{
+  const tracker=new AppearanceTracker();
+  const state={state:"on",attributes:attrs};
+  assert.equal(tracker.observe(state),true);
+  // A whole-light XY command still suppresses unchanged retained points.
+  const solid={...state,attributes:{...attrs,xy_color:[.3,.3],rgb_color:[255,255,255]}};
+  assert.equal(tracker.observe(solid),false);
+  const modeUpdate={...solid,attributes:{...solid.attributes,gradient_mode:"segmented_palette"}};
+  assert.deepEqual(currentColors(modeUpdate,tracker.observe(modeUpdate)),attrs.gradient_colors_rgb);
+});
+test("derived RGB and HS changes alone do not suppress gradients in any supported mode",()=>{
+  for(const gradient_mode of ["interpolated_palette","interpolated_palette_mirrored","random_pixelated","segmented_palette"]){
+    const tracker=new AppearanceTracker(),state={state:"on",attributes:{...attrs,gradient_mode}};
+    assert.equal(tracker.observe(state),true);
+    assert.equal(tracker.observe({...state,attributes:{...state.attributes,rgb_color:[254,0,0],hs_color:[0,100]}}),true);
+  }
 });
 test("both palettes preserve off-palette actual colors and order",()=>{
   const p=markerPosition([255,0,0]);assert.deepEqual(paletteColor(p.x,p.y),[255,0,0]);

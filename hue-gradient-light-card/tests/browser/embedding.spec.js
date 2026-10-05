@@ -25,7 +25,7 @@ for(const version of ["3.4.1","2.3.4"]){
     await page.locator("#navigation .bubble-button-background").click();await expect(page).toHaveURL(/#living-room-gradient$/);
     const host=page.locator(".bubble-pop-up");await expect(host).toBeVisible();
     const editor=host.locator("hue-gradient-editor");await expect(editor).toBeVisible();
-    await expect(editor.locator("header")).toHaveCount(0);await expect(editor.getByRole("button",{name:"Add color",exact:true})).toBeVisible();
+    await expect(editor.locator("header h2")).toHaveText("Living room strip");await expect(editor.locator(".header-icon")).toBeVisible();await expect(editor.getByRole("button",{name:"Add color",exact:true})).toBeVisible();
     expect(await page.evaluate(()=>calls.filter(c=>c.type==="call_service"||c.domain))).toEqual([]);
     expect(errors).toEqual([]);
   });
@@ -33,12 +33,12 @@ for(const version of ["3.4.1","2.3.4"]){
 test("embedded visual editor exposes all embedding options",async({page})=>{
   await page.goto("/?noBubble=1",{waitUntil:"domcontentloaded"});await page.waitForFunction(()=>window.fixtureReady);
   await page.evaluate(()=>window.embeddedConfig=makeCard("hue-gradient-editor-config-editor",{type:"custom:hue-gradient-editor",entity:"light.strip"},"config"));
-  await expect.poll(()=>page.evaluate(()=>embeddedConfig.shadowRoot.querySelector("ha-form")?.schema.map(s=>s.name))).toEqual(["entity","name","icon","embedded"]);
+  await expect.poll(()=>page.evaluate(()=>embeddedConfig.shadowRoot.querySelector("ha-form")?.schema.map(s=>s.name))).toEqual(["entity","name","icon","icon_gradient_background","embedded","card_background"]);
   await page.evaluate(()=>{
     embeddedConfig.addEventListener("config-changed",(e)=>colors.setConfig(e.detail.config));
     embeddedConfig.shadowRoot.querySelector("ha-form").dispatchEvent(new CustomEvent("value-changed",{detail:{value:{entity:"light.strip",embedded:true,name:"Embedded name",icon:"mdi:led-strip"}}}));
   });
-  await expect(page.locator("#editors hue-gradient-editor").first().locator("header")).toHaveCount(0);
+  await expect(page.locator("#editors hue-gradient-editor").first().locator("header h2")).toHaveText("Embedded name");
   expect(await page.evaluate(()=>colors.name)).toBe("Embedded name");expect(await page.evaluate(()=>calls.length)).toBe(0);
 });
 test("touch gesture moves a marker without removal and disconnect cancels pending writes",async({browser})=>{

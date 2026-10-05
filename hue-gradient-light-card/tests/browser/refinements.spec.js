@@ -25,24 +25,26 @@ test("power off overrides pending Whites feedback in both views and header icons
   await expect(editors.last().getByRole("slider",{name:"Brightness",exact:true})).toHaveValue("70");
   expect(errors).toEqual([]);
 });
-for(const version of ["3.4.1","2.3.4"])test(`visual subtitle switches control actual Tile and Bubble ${version} text without changing hass states`,async({page})=>{
+for(const version of ["3.4.1","2.3.4"])test(`native subtitle picker controls actual Tile and Bubble ${version} text without changing hass states`,async({page})=>{
   const errors=await ready(page,version),form=page.locator("#config"),cards=page.locator("#cards hue-gradient-light-card");
   const text=card=>card.locator("ha-tile-info,.bubble-state");
-  const option=name=>form.getByLabel(`Subtitle: ${name}`,{exact:true});
-  await option("color count").click();
-  await option("mode").click();
+  const picker=form.locator("ha-entity-state-content-picker");
+  const add=async name=>{await picker.getByRole("button",{name:"add",exact:true}).click();await form.getByText(name,{exact:true}).click();};
+  const remove=name=>picker.getByRole("button",{name:`Remove ${name}`,exact:true}).click();
+  await add("Color count");
+  await add("Gradient mode");
   for(const card of [cards.first(),cards.last()]){
     await expect(text(card)).toContainText("On");await expect(text(card)).toContainText("70%");
     await expect(text(card)).toContainText("4 colors");await expect(text(card)).toContainText("Blended");
   }
-  await option("state").click();
-  await option("brightness").click();
+  await remove("state");
+  await remove("brightness");
   for(const card of [cards.first(),cards.last()]){
     await expect(text(card)).not.toContainText("On");await expect(text(card)).not.toContainText("70%");
     await expect(text(card)).toContainText("4 colors");await expect(text(card)).toContainText("Blended");
   }
-  await option("color count").click();
-  await option("mode").click();
+  await remove("Color count");
+  await remove("Gradient mode");
   await expect.poll(()=>page.evaluate(()=>tile._card._config.hide_state)).toBe(true);
   await expect.poll(()=>page.evaluate(()=>bubble._card.config.show_state)).toBe(false);
   expect(await page.evaluate(()=>Object.keys(hass.states["light.strip"].attributes).some(key=>key.startsWith("hgc_")))).toBe(false);

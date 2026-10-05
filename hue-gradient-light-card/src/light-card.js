@@ -5,12 +5,26 @@ const OPEN = { action:"fire-dom-event", hgc_open_popup:true };
 const TILE_STYLES = `
   ha-card { background:var(--hgc-card-fill,var(--ha-card-background,var(--card-background-color))) !important; }
   ha-card.active { --tile-color:var(--hgc-active-foreground,var(--state-icon-color)) !important; }
+  ha-card.active ha-tile-icon { --tile-icon-color:var(--hgc-icon-color,var(--state-light-active-color)) !important; }
   ha-card.active ha-tile-info { text-shadow:var(--hgc-card-text-shadow,0 1px 3px rgba(0,0,0,.25)); }
 `;
+const BRIGHTNESS_STYLES = `
+  .container .slider .slider-track-background { background:var(--hgc-brightness-gradient,var(--control-slider-background)); }
+  .container .slider .slider-track-bar {
+    background:var(--hgc-brightness-gradient,var(--control-slider-color));
+    transform:none !important;
+    width:calc(var(--value,0) * (100% - 2 * var(--handle-margin) - var(--handle-size)) + 2 * var(--handle-margin) + var(--handle-size));
+    transition:width .18s ease-in-out;
+  }
+  .container.pressed .slider .slider-track-bar { transition:none; }
+`;
 const BUBBLE_STYLES = `
+  ha-card { border:0 !important; box-shadow:none !important; background:transparent !important; border-radius:var(--bubble-button-border-radius,var(--bubble-border-radius,32px)) !important; }
   .bubble-button-card-container { background:var(--hgc-card-fill,var(--bubble-main-background-color,var(--ha-card-background,var(--card-background-color)))) !important; }
   .bubble-background,.bubble-button-background { background:transparent !important; opacity:0 !important; }
-  .bubble-name,.bubble-state,.bubble-icon { color:var(--hgc-active-foreground,var(--primary-text-color)) !important; }
+  .bubble-name,.bubble-state { color:var(--hgc-active-foreground,var(--primary-text-color)) !important; }
+  .bubble-icon { color:var(--hgc-icon-color,var(--primary-text-color)) !important; }
+  .bubble-icon-container { background:var(--hgc-icon-gradient,none),linear-gradient(var(--bubble-icon-background-color,var(--secondary-background-color)),var(--bubble-icon-background-color,var(--secondary-background-color))) !important; }
   .bubble-name,.bubble-state { text-shadow:var(--hgc-card-text-shadow,0 1px 3px rgba(0,0,0,.25)); }
 `;
 
@@ -65,6 +79,7 @@ export class HueGradientLightCard extends HTMLElement {
       show_state:true,show_attribute:false,button_action:{tap_action:OPEN},tap_action:{action:"fire-dom-event",hgc_power:true},
       styles:BUBBLE_STYLES}
       : {type:"tile",...base,state_content:["state","brightness"],tap_action:OPEN,
+        ...design==="tile"&&this._config.show_brightness_slider?{features:[{type:"light-brightness"}],features_position:"bottom"}:{},
         icon_tap_action:{action:"fire-dom-event",hgc_power:true}};
     try{
       let card;
@@ -119,6 +134,19 @@ export class HueGradientLightCard extends HTMLElement {
     if(state?.state==="off"&&values.brightness)attributes.brightness=0;
     const states=state?{...source.states,[entity]:{...state,attributes}}:source.states;
     this._card.hass={...source,states,
+      // Native brightness interaction stays native; only its writes join the
+      // same entity lane as popup edits and discard requests after disconnect.
+      callService:(domain,service,data,...args)=>{
+        if(!this._isBubble&&this._config.show_brightness_slider&&domain==="light"&&service==="turn_on"&&
+          (Object.hasOwn(data??{},"brightness")||Object.hasOwn(data??{},"brightness_pct"))){
+          return serialize(entity,()=>{
+            const caps=capabilities(this.hass,entity);
+            if(!this.isConnected||this._config.entity!==entity||this._config.design!=="tile"||!this._config.show_brightness_slider||!caps.available||!caps.brightness)return;
+            return source.callService(domain,service,data,...args);
+          });
+        }
+        return source.callService(domain,service,data,...args);
+      },
       formatEntityState:s=>this._isBubble&&s.entity_id===entity?Object.values(values).join(" · "):source.formatEntityState(s),
       formatEntityAttributeValue:(s,key,...args)=>s.entity_id===entity&&Object.hasOwn(values,key)?values[key]:source.formatEntityAttributeValue(s,key,...args),
     };
@@ -128,7 +156,16 @@ export class HueGradientLightCard extends HTMLElement {
     const state=this.hass?.states?.[this._config.entity];
     const on=state?.state==="on";
     const colors=on?currentColors(state,this._gradientActive&&capabilities(this.hass,this._config.entity).gradient):[];
-    const opacity=this._config.color_background_opacity;
+    if(colors.length)this._card.style.setProperty("--hgc-brightness-gradient",colorLayer(colors,100));
+    else this._card.style.removeProperty("--hgc-brightness-gradient");
+    const opacity=this._config.color_background?this._config.color_background_opacity:0;
+    if(colors.length)this._card.style.setProperty("--hgc-icon-color",`rgb(${colors[0].join(",")})`);
+    else this._card.style.removeProperty("--hgc-icon-color");
+    if(on&&colors.length&&this._config.icon_gradient_background)this._card.style.setProperty("--hgc-icon-gradient",colorLayer(colors,this._isBubble?35:100));
+    else this._card.style.removeProperty("--hgc-icon-gradient");
+    // Tile's icon background lives in its own shadow root. Keep this styling
+    // scoped to our renderer and retain its native dimensions and interactions.
+    if(!this._isBubble)this._styleTile(this._card);
     let layer=colorLayer(colors,opacity);
     if(on&&!colors.length&&opacity>0){
       layer=`linear-gradient(color-mix(in srgb,var(--state-light-active-color,var(--amber-color)) ${opacity}%,transparent),color-mix(in srgb,var(--state-light-active-color,var(--amber-color)) ${opacity}%,transparent))`;
@@ -150,6 +187,32 @@ export class HueGradientLightCard extends HTMLElement {
       this._card.style.setProperty("--secondary-text-color","var(--hgc-active-foreground)");
     }else{
       this._card.style.removeProperty("--primary-text-color");this._card.style.removeProperty("--secondary-text-color");
+    }
+  }
+  async _styleTile(card){
+    await card.updateComplete;
+    if(card!==this._card||!this.isConnected)return;
+    const root=card.shadowRoot?.querySelector("ha-tile-icon")?.shadowRoot;
+    if(root&&!root.querySelector("style[data-hgc]")){
+      const style=document.createElement("style");style.dataset.hgc="icon";
+      style.textContent=".container.background::before{background:var(--hgc-icon-gradient,var(--tile-icon-color)) !important}";root.append(style);
+    }
+    if(this._config.design!=="tile"||!this._config.show_brightness_slider)return;
+    // Guard each owned shadow root; HA loads features asynchronously. Keep all
+    // feature sizing, focus, pointer/keyboard handling and tooltips native.
+    const features=card.shadowRoot?.querySelector("hui-card-features");
+    await features?.updateComplete;
+    const wrapper=features?.shadowRoot?.querySelector("hui-card-feature");
+    if(!wrapper)return;
+    await customElements.whenDefined("hui-light-brightness-card-feature");
+    await wrapper.updateComplete;
+    const feature=wrapper.shadowRoot?.querySelector("hui-light-brightness-card-feature");
+    await feature?.updateComplete;
+    const slider=feature?.shadowRoot?.querySelector("ha-control-slider");
+    await slider?.updateComplete;
+    if(card!==this._card||!this.isConnected)return;
+    if(slider?.shadowRoot&&!slider.shadowRoot.querySelector("style[data-hgc]")){
+      const style=document.createElement("style");style.dataset.hgc="brightness";style.textContent=BRIGHTNESS_STYLES;slider.shadowRoot.append(style);
     }
   }
   async _power(){
@@ -174,7 +237,7 @@ export class HueGradientLightCard extends HTMLElement {
     const style=document.createElement("style");style.textContent="dialog::backdrop{background:var(--hgc-backdrop-color,rgba(0,0,0,.5))}";dialog.append(style);
     const editor=document.createElement("hue-gradient-editor");editor.popup=true;
     editor.appearanceSource=()=>this._gradientActive;
-    editor.setConfig({type:"custom:hue-gradient-editor",entity:this._config.entity,...this._config.name?{name:this._config.name}:{},...this._config.icon?{icon:this._config.icon}:{}});
+    editor.setConfig({type:"custom:hue-gradient-editor",entity:this._config.entity,icon_gradient_background:this._config.icon_gradient_background,...this._config.name?{name:this._config.name}:{},...this._config.icon?{icon:this._config.icon}:{}});
     editor.hass=this.hass;dialog.append(editor);this.shadowRoot.append(dialog);
     this._dialog=dialog;this._editor=editor;
     dialog.addEventListener("hgc-close",()=>this.closePopup());
@@ -188,7 +251,7 @@ export class HueGradientLightCard extends HTMLElement {
     this._card?.focus?.();
   }
   getCardSize(){return this._card?.getCardSize?.()??1;}
-  getGridOptions(){return this._card?.getGridOptions?.()??(this._config?.design==="bubble"&&customElements.get("bubble-card")?{columns:12,rows:"auto"}:{columns:6,rows:1,min_columns:6,min_rows:1});}
+  getGridOptions(){return this._card?.getGridOptions?.()??(this._config?.design==="bubble"&&customElements.get("bubble-card")?{columns:12,rows:"auto"}:{columns:6,rows:this._config?.design==="tile"&&this._config.show_brightness_slider?2:1,min_columns:6,min_rows:this._config?.design==="tile"&&this._config.show_brightness_slider?2:1});}
   static getConfigElement(){return document.createElement("hue-gradient-light-card-config-editor");}
   static getStubConfig(hass){return {entity:Object.keys(hass?.states??{}).find((id)=>id.startsWith("light."))??"light.example",design:"tile",color_background_opacity:70};}
 }
