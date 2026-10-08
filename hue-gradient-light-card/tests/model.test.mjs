@@ -7,7 +7,12 @@ const attrs={supported_color_modes:["xy","color_temp"],color_mode:"xy",rgb_color
   gradient_colors_xy:[[.6,.3],[.2,.1]],gradient_colors_rgb:[[255,0,0],[0,0,255]]};
 const hass={states:{"light.strip":{state:"on",attributes:attrs}},entities:{"light.strip":{platform:"hue"}},services:{hue_gradient_controller:{set_gradient:{}}}};
 test("configuration defaults, overrides and validation",()=>{
-  assert.deepEqual(normalizeConfig({entity:"light.strip",name:"",icon:" "}),{entity:"light.strip",design:"tile",show_brightness_slider:false,color_background:true,icon_gradient_background:false,color_background_opacity:70,...SUBTITLE_DEFAULTS});
+  assert.deepEqual(normalizeConfig({entity:"light.strip",name:"",icon:" "}),{entity:"light.strip",design:"tile",show_brightness_slider:false,protect_when_off:false,color_background:true,icon_gradient_background:false,color_background_opacity:70,...SUBTITLE_DEFAULTS});
+  for (const editor of [false,true]) {
+    assert.equal(normalizeConfig({entity:"light.strip"},editor).protect_when_off,false);
+    assert.equal(normalizeConfig({entity:"light.strip",protect_when_off:true},editor).protect_when_off,true);
+    assert.throws(()=>normalizeConfig({entity:"light.strip",protect_when_off:"true"},editor));
+  }
   assert.equal(normalizeConfig({entity:"light.strip",name:" Custom "}).name,"Custom");
   assert.equal(normalizeConfig({entity:"light.strip"},true).embedded,false);
   assert.equal(normalizeConfig({entity:"light.strip",show_brightness_slider:true}).show_brightness_slider,true);

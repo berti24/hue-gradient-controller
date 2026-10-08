@@ -8,7 +8,7 @@ for(const width of [1200,390])test(`card appearance settings and editor headers 
   await page.goto("/?noEcho=1",{waitUntil:"domcontentloaded"});
   await page.waitForFunction(()=>window.fixtureReady);
   await expect(page).toHaveTitle("Hue Gradient Card compatibility fixture");
-  await expect(page.locator("#config .version")).toHaveText("Hue Gradient Card 0.4.2");
+  await expect(page.locator("#config .version")).toHaveText("Hue Gradient Card 0.5.0");
   const first="rgb(255, 130, 10)";
   const nativeIcon=page.locator("#cards hue-gradient-light-card").first().locator("ha-state-icon");
   const bubbleIcon=page.locator("#cards hue-gradient-light-card").last().locator(".bubble-icon");

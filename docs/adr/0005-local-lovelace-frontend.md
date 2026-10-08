@@ -37,6 +37,21 @@ optimistic state expires after the transition plus event delivery allowance.
 Disconnect discards pending writes and listeners; an already accepted service
 request cannot be canceled. No background retries or persistence are added.
 
+The optional per-card/editor `protect_when_off` setting defaults to false to
+preserve edit-to-turn-on workflows. When enabled, off states and local power-off
+intent lock edits, cancel active gestures and discard unsent writes, including
+batches waiting in a shared entity lane. The send boundary rechecks power before
+editing or restoring; explicit power controls remain available. Reported on
+state unlocks controls. Protection does not alter integration service contracts.
+
+Touch color editing requires a stationary 400 ms hold; movement before arming
+belongs to native scrolling. Non-passive touch listeners prevent scrolling only
+for an armed drag; pointer handlers keep mouse/pen edits immediate. Changing CSS
+touch-action during a gesture cannot transfer browser ownership, so the wheel
+permits native gestures from the start. A short tap on the selected X retains
+deletion, while a swipe or stationary hold never deletes it. Disconnect and
+off/unavailable transitions cancel hold timers as well as pending writes.
+
 ## Consequences
 
 Native geometry and theme changes remain owned by the installed frontend and

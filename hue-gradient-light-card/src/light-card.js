@@ -30,7 +30,7 @@ const BUBBLE_STYLES = `
 
 export class HueGradientLightCard extends HTMLElement {
   constructor() {
-    super(); this.attachShadow({mode:"open"}); this._tracker=new AppearanceTracker(); this._generation=0;
+    super(); this.attachShadow({mode:"open"}); this._tracker=new AppearanceTracker(); this._generation=0; this._brightnessRevision=0;
     const style=document.createElement("style");
     style.textContent=":host{display:block;height:100%;min-width:0} #renderer{display:block;height:100%} #renderer>*{height:100%;display:block} .error{color:var(--error-color);padding:16px}";
     this._mount=document.createElement("div");this._mount.id="renderer";this.shadowRoot.append(style,this._mount);
@@ -43,16 +43,24 @@ export class HueGradientLightCard extends HTMLElement {
   }
   setConfig(input) {
     const config=normalizeConfig(input);
-    if(config.entity!==this._config?.entity){this._tracker=new AppearanceTracker();this.closePopup();}
+    if(config.entity!==this._config?.entity){this._tracker=new AppearanceTracker();this._powerIntent=undefined;this._brightnessRevision++;this.closePopup();}
     this._config=config;this._renderNative();
+    if(!config.protect_when_off)this._powerIntent=undefined;
+    if(this._editor)this._editor.setConfig({...this._editor._config,protect_when_off:config.protect_when_off});
   }
   set hass(value) {
+    const before=this._hass?.states?.[this._config?.entity],state=value?.states?.[this._config?.entity];
     this._hass=value;
+    if(state!==before){
+      if((this._powerIntent==="off"&&state?.state==="off")||(this._powerIntent==="on"&&state?.state==="on"))this._powerIntent=undefined;
+      if(this._config?.protect_when_off&&state?.state==="off"&&before?.state!=="off")this._brightnessRevision++;
+    }
     if(this._config){this._gradientActive=this._tracker.observe(value?.states?.[this._config.entity]);}
     if(this._card){this._updateRendererState();this._styleSurface();}
     if(this._editor)this._editor.hass=value;
   }
   get hass(){return this._hass;}
+  get offProtected(){return Boolean(this._config?.protect_when_off&&(this.hass?.states?.[this._config.entity]?.state!=="on"||this._powerIntent||this._editor?.offProtected));}
   set layout(value){this._layout=value;if(this._card)this._card.layout=value;}
   get layout(){return this._layout;}
   connectedCallback(){
@@ -65,7 +73,7 @@ export class HueGradientLightCard extends HTMLElement {
     customElements.whenDefined("bubble-card").then(()=> {if(this.isConnected&&this._config?.design==="bubble")this._renderNative();});
   }
   disconnectedCallback(){
-    this._connected=false;this._generation++;
+    this._connected=false;this._generation++;this._brightnessRevision++;this._powerIntent=undefined;
     this.removeEventListener("ll-custom",this._openEvent);this.removeEventListener("hass-action",this._bubbleClick);
     this._resize?.disconnect();this.closePopup();
   }
@@ -139,9 +147,11 @@ export class HueGradientLightCard extends HTMLElement {
       callService:(domain,service,data,...args)=>{
         if(!this._isBubble&&this._config.show_brightness_slider&&domain==="light"&&service==="turn_on"&&
           (Object.hasOwn(data??{},"brightness")||Object.hasOwn(data??{},"brightness_pct"))){
+          if(this.offProtected)return Promise.resolve();
+          const revision=this._brightnessRevision;
           return serialize(entity,()=>{
             const caps=capabilities(this.hass,entity);
-            if(!this.isConnected||this._config.entity!==entity||this._config.design!=="tile"||!this._config.show_brightness_slider||!caps.available||!caps.brightness)return;
+            if(!this.isConnected||this._config.entity!==entity||this._config.design!=="tile"||!this._config.show_brightness_slider||!caps.available||!caps.brightness||this.offProtected||revision!==this._brightnessRevision)return;
             return source.callService(domain,service,data,...args);
           });
         }
@@ -211,20 +221,29 @@ export class HueGradientLightCard extends HTMLElement {
     const slider=feature?.shadowRoot?.querySelector("ha-control-slider");
     await slider?.updateComplete;
     if(card!==this._card||!this.isConnected)return;
+    if(slider)slider.disabled=!capabilities(this.hass,this._config.entity).available||this.offProtected;
     if(slider?.shadowRoot&&!slider.shadowRoot.querySelector("style[data-hgc]")){
       const style=document.createElement("style");style.dataset.hgc="brightness";style.textContent=BRIGHTNESS_STYLES;slider.shadowRoot.append(style);
     }
   }
+  _setPowerIntent(service){
+    if(!this._config.protect_when_off)return;
+    this._powerIntent=service?service==="turn_off"?"off":"on":undefined;
+    if(service==="turn_off")this._brightnessRevision++;
+    this._styleSurface();
+  }
   async _power(){
     if(!capabilities(this.hass,this._config.entity).available)return;
     const entity=this._config.entity;
-    const service=this.hass.states[entity].state==="on"?"turn_off":"turn_on";
+    const service=this.hass.states[entity].state==="on"&&this._powerIntent!=="off"?"turn_off":"turn_on";
+    if(this._editor)this._editor._preparePower(service);
+    else this._setPowerIntent(service);
     try{await serialize(entity,()=>{
       if(!this.isConnected||this._config.entity!==entity||!capabilities(this.hass,entity).available)return;
       return this.hass.callService("light",service,{}, {entity_id:entity});
     });}
     catch(error){
-      if(this.isConnected&&this._config.entity===entity){this.openPopup();this._editor._error=error.message;}
+      if(this.isConnected&&this._config.entity===entity){this._powerIntent=undefined;this.openPopup();this._editor._powerIntent=undefined;this._editor._error=error.message;this._editor._adoptReported();this._styleSurface();}
     }
   }
   openPopup(){
@@ -237,8 +256,9 @@ export class HueGradientLightCard extends HTMLElement {
     const style=document.createElement("style");style.textContent="dialog::backdrop{background:var(--hgc-backdrop-color,rgba(0,0,0,.5))}";dialog.append(style);
     const editor=document.createElement("hue-gradient-editor");editor.popup=true;
     editor.appearanceSource=()=>this._gradientActive;
-    editor.setConfig({type:"custom:hue-gradient-editor",entity:this._config.entity,icon_gradient_background:this._config.icon_gradient_background,...this._config.name?{name:this._config.name}:{},...this._config.icon?{icon:this._config.icon}:{}});
-    editor.hass=this.hass;dialog.append(editor);this.shadowRoot.append(dialog);
+    editor.powerIntentChanged=service=>this._setPowerIntent(service);
+    editor.setConfig({type:"custom:hue-gradient-editor",entity:this._config.entity,protect_when_off:this._config.protect_when_off,icon_gradient_background:this._config.icon_gradient_background,...this._config.name?{name:this._config.name}:{},...this._config.icon?{icon:this._config.icon}:{}});
+    editor.hass=this.hass;editor._powerIntent=this._powerIntent;dialog.append(editor);this.shadowRoot.append(dialog);
     this._dialog=dialog;this._editor=editor;
     dialog.addEventListener("hgc-close",()=>this.closePopup());
     dialog.addEventListener("cancel",(e)=>{e.preventDefault();this.closePopup();});

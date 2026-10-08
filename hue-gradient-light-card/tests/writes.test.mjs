@@ -35,3 +35,29 @@ test("disconnect cancels pending writes and callbacks",async()=>{
   const sent=[],settled=[];const writer=new LiveWriter("light.x",async(v)=>sent.push(v),(e)=>settled.push(e),5);
   writer.enqueue(1);writer.dispose();await wait(15);assert.deepEqual(sent,[]);assert.deepEqual(settled,[]);
 });
+test("cancel invalidates a flushed batch waiting in another card's lane",async()=>{
+  let release;
+  const blocker=serialize("light.blocked",()=>new Promise(resolve=>{release=resolve;}));
+  await wait(0);
+  const sent=[],settled=[];
+  const writer=new LiveWriter("light.blocked",async(command)=>sent.push(command),error=>settled.push(error));
+  writer.enqueue({key:"color",value:"old"});
+  const flushed=writer.flush();
+  writer.cancelPending();
+  writer.enqueue({key:"power",value:"off"},true);
+  release();await blocker;await flushed;
+  assert.deepEqual(sent,[{key:"power",value:"off"}]);
+  assert.deepEqual(settled,[undefined]);writer.dispose();
+});
+test("cancel drops the unsent remainder of an in-flight batch without recalling its accepted request",async()=>{
+  let release;
+  const sent=[];
+  const writer=new LiveWriter("light.running",async(command)=>{
+    sent.push(command);if(command.value==="accepted")await new Promise(resolve=>{release=resolve;});
+  },()=>{});
+  writer.enqueue({key:"color",value:"accepted"});writer.enqueue({key:"brightness",value:"unsent"});
+  const flushed=writer.flush();await wait(0);
+  writer.cancelPending();writer.enqueue({key:"power",value:"off"},true);
+  release();await flushed;
+  assert.deepEqual(sent.map(command=>command.value),["accepted","off"]);writer.dispose();
+});

@@ -7,7 +7,7 @@ const LABELS = {
   entity: "Entity", design: "Design", name: "Name", icon: "Icon",
   color_background_opacity: "Light color background opacity", embedded: "Embedded",
   color_background: "Light color card background", icon_gradient_background: "Gradient icon background",
-  state_content: "Subtitle",
+  state_content: "Subtitle", protect_when_off: "Protect while off",
   card_background: "Card background",
   show_brightness_slider: "Brightness slider",
 };
@@ -40,6 +40,7 @@ export class ConfigEditor extends LitElement {
       ] } } }],
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
+      { name: "protect_when_off", selector: { boolean: {} } },
       ...this.isEmbeddedEditor ? [] : [{name:"state_content",selector:{ui_state_content:{}},context:{filter_entity:"entity"}}],
       ...!this.isEmbeddedEditor && (this._config.design ?? "tile") === "tile" ? [{name:"show_brightness_slider",selector:{boolean:{}}}] : [],
       { name: "icon_gradient_background", selector: { boolean: {} } },
@@ -51,7 +52,7 @@ export class ConfigEditor extends LitElement {
         { name: "color_background_opacity", selector: { number: { min: 0, max: 100, step: 1, mode: "slider", unit_of_measurement: "%" } } },
       ],
     ];
-    const data = this.isEmbeddedEditor ? { embedded: false, icon_gradient_background:false, ...this._config, card_background:this._config.card_background ?? !this._config.embedded } : { design: "tile", show_brightness_slider:false, color_background:true, icon_gradient_background:false, color_background_opacity: 70, ...this._config, state_content:subtitleFields(this._config) };
+    const data = this.isEmbeddedEditor ? { protect_when_off:false, embedded: false, icon_gradient_background:false, ...this._config, card_background:this._config.card_background ?? !this._config.embedded } : { protect_when_off:false, design: "tile", show_brightness_slider:false, color_background:true, icon_gradient_background:false, color_background_opacity: 70, ...this._config, state_content:subtitleFields(this._config) };
     // Offer the integration's display fields through the same native picker as
     // Tile. This scoped hass copy is editor presentation only.
     const entity = this._config.entity, source = this.hass, state = source?.states?.[entity];

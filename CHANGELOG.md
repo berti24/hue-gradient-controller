@@ -5,6 +5,33 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-10-08
+
+### Added
+
+- Optional **Protect while off** setting in YAML and visual configuration for
+  light-card popups and standalone/embedded editors. It keeps the last palette
+  dimmed, disables edits and Restore while off, and offers an explicit Turn on
+  control. The default preserves existing edit-to-turn-on behavior.
+
+### Fixed
+
+- Allow mobile swipes over the wheel and selected X to scroll without changing
+  or deleting points. Touch color edits require a 400 ms hold with visible ready
+  feedback; mouse/keyboard edits and short-tap X deletion remain available.
+- Cancel gestures, hold timers and unsent edits on protected power-off intent
+  or reported off state, including flushed batches waiting in a shared write
+  lane. Recheck protection at write/restore dispatch and await reported on state
+  before unlocking; accepted requests cannot be recalled.
+- Cover Off protection, delayed/rejected power commands, queue cancellation,
+  real touch scrolling, deliberate holds, tap deletion and timer cleanup with
+  unit and browser regressions.
+- Keep generated bundle string whitespace escaped for clean diffs and order
+  manifest fields as required by hassfest validation.
+- Integrate Off protection and hold editing with the latest card options,
+  opposite-color additions and retained embedded headers. Protect the optional
+  native Tile brightness row while off, including queued brightness requests.
+
 ## [0.4.2] - 2026-10-05
 
 ### Added

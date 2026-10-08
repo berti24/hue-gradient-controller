@@ -92,3 +92,68 @@ test("native slider writes wait for popup edits and queued requests discard on d
   await page.evaluate(()=>tile.remove());await page.evaluate(()=>releaseBrightnessLane());
   await page.waitForTimeout(250);expect(await page.evaluate(()=>calls)).toEqual([]);
 });
+
+test("Off protection disables the native Tile slider and keeps explicit power usable",async({page})=>{
+  await ready(page);await enable(page);
+  await page.evaluate(()=>{
+    tile.setConfig({...tile._config,protect_when_off:true});
+    const state=hass.states['light.strip'];updateHass({states:{...hass.states,'light.strip':{...state,state:'off'}}});
+  });
+  const current=tileCard(page).getByRole('slider',{name:'brightness',exact:true});
+  await expect(tileCard(page).locator('ha-control-slider')).toHaveAttribute('disabled','');
+  await current.press('ArrowRight');
+  await page.evaluate(()=>tile._card.hass.callService('light','turn_on',{entity_id:'light.strip',brightness_pct:50}));
+  expect(await page.evaluate(()=>calls)).toEqual([]);
+  await tileCard(page).locator('ha-tile-icon').click();
+  await expect.poll(()=>page.evaluate(()=>calls.at(-1)?.service)).toBe('turn_on');
+  await expect(tileCard(page).locator('ha-control-slider')).toHaveAttribute('disabled','');
+  await page.evaluate(()=>{
+    const state=hass.states['light.strip'];updateHass({states:{...hass.states,'light.strip':{...state,state:'on'}}});
+  });
+  await expect(tileCard(page).locator('ha-control-slider')).not.toHaveAttribute('disabled');
+  await current.press('ArrowRight');
+  await expect.poll(()=>page.evaluate(()=>calls.length)).toBe(2);
+});
+
+test("protected off cancels queued Tile brightness even if reported on returns before dispatch",async({page})=>{
+  await ready(page);await enable(page);
+  await page.evaluate(()=>{
+    tile.setConfig({...tile._config,protect_when_off:true});
+    const original=hass.callService;
+    updateHass({callService:(...args)=>{
+      if(args[0]==='hue_gradient_controller')return new Promise(resolve=>{window.releaseBrightnessLane=resolve;});
+      return original(...args);
+    }});
+    colors._colorCommand(true);
+  });
+  await page.waitForFunction(()=>Boolean(window.releaseBrightnessLane));
+  await page.evaluate(()=>{
+    tile._card.hass.callService('light','turn_on',{entity_id:'light.strip',brightness_pct:50});
+    const state=hass.states['light.strip'];
+    updateHass({states:{...hass.states,'light.strip':{...state,state:'off'}}});
+    updateHass({states:{...hass.states,'light.strip':{...state,state:'on'}}});
+    window.releaseBrightnessLane();
+  });
+  await page.waitForFunction(()=>!colors._writer.busy);
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(()=>calls)).toEqual([]);
+});
+
+test("popup Turn off protects Tile brightness after closing and reopening",async({page})=>{
+  await ready(page);await enable(page);
+  await page.evaluate(()=>{
+    tile.setConfig({...tile._config,protect_when_off:true});
+    tile.openPopup();tile._editor._power();
+  });
+  await expect.poll(()=>page.evaluate(()=>calls.length)).toBe(1);
+  expect(await page.evaluate(()=>calls[0].service)).toBe('turn_off');
+  await page.evaluate(()=>{
+    tile.closePopup();
+    tile._card.hass.callService('light','turn_on',{entity_id:'light.strip',brightness_pct:50});
+    tile.openPopup();
+  });
+  expect(await page.evaluate(()=>tile._editor.offProtected)).toBe(true);
+  await page.evaluate(()=>tile.closePopup());
+  await expect(tileCard(page).locator('ha-control-slider')).toHaveAttribute('disabled','');
+  expect(await page.evaluate(()=>calls.length)).toBe(1);
+});

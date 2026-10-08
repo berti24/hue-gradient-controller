@@ -220,6 +220,10 @@ or Bubble light button and opens a compact color/white-tone gradient wheel.
 It also supports ordinary light entities without the Python integration.
 **Hue Gradient Editor** can be embedded in original Bubble hash-linked popups.
 Both cards have visual configuration editors.
+Enable **Protect while off** (`protect_when_off: true`) on a light card or editor
+to require an explicit Turn on before changing an off light. It defaults to
+false. On touch screens, hold the wheel or a point briefly to edit colors;
+ordinary swipes scroll without changing the palette.
 
 The built frontend asset ships with this Integration; copying it to `/config/www`
 and registering a dashboard resource is a separate one-time frontend step.

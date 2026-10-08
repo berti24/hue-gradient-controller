@@ -14,31 +14,41 @@ export class HueGradientEditor extends LitElement {
     _whites: { state: true }, _brightness: { state: true }, _kelvin: { state: true }, _mode: { state: true },
     _error: { state: true }, _snapshot: { state: true }, _menu: { state: true },
     _busyAction: { state: true }, _transition: { state: true }, _hass: { state: true },
+    _touchReady: { state: true }, _powerIntent: { state: true },
   };
   constructor() {
     super(); this._points = []; this._selected = 0; this._whites = false;
     this._tracker = new AppearanceTracker(); this._transition = 0; this._error = "";
+    // Touch listeners must be non-passive so an armed hold can own the drag.
+    // Before arming, native scrolling and zooming remain available.
+    this._touchHandlers = Object.fromEntries(["start", "move", "end", "cancel"].map(type => [type,
+      { handleEvent: event => this[`_touch${type[0].toUpperCase()}${type.slice(1)}`](event), passive: false }]));
   }
   setConfig(input) {
     const config = normalizeConfig(input, true);
     if (this._config?.entity !== config.entity) {
+      this._clearTouch(); this._drag = undefined; this._powerIntent = undefined; this._reportedColors = undefined;
       this._writer?.dispose(); this._writer = undefined; this._tracker = new AppearanceTracker();
       this._snapshot = undefined; this._points = []; this._lastState = undefined;
     }
     this._config = config;
+    if (!config.protect_when_off) this._powerIntent = undefined;
+    if (this.offProtected) this._cancelEdits();
     this._sync();
   }
   set hass(value) { this._hass = value; this._sync(); }
   get hass() { return this._hass; }
   get caps() { return capabilities(this.hass, this._config?.entity); }
   get state() { return this.hass?.states?.[this._config?.entity]; }
+  get offProtected() { return Boolean(this._config?.protect_when_off && (this.state?.state !== "on" || this._powerIntent)); }
+  get canEdit() { return this.caps.available && !this._busyAction && !this.offProtected; }
   get name() { return this._config?.name || (this.state && this.hass?.formatEntityName?.(this.state)) || this.state?.attributes.friendly_name || this._config?.entity; }
   get icon() { return this._config?.icon || this.hass?.entities?.[this._config?.entity]?.icon || this.state?.attributes.icon || "mdi:lightbulb"; }
   get points() { return this._points.map((point) => [...point.rgb]); }
   connectedCallback() { super.connectedCallback(); this._ensureWriter(); }
   disconnectedCallback() {
     super.disconnectedCallback(); this._writer?.dispose(); this._writer = undefined;
-    clearTimeout(this._reconcileTimer); this._drag = undefined;
+    clearTimeout(this._reconcileTimer); this._clearTouch(); this._drag = undefined; this._powerIntent = undefined;
     // A reused dashboard editor must not retain feedback whose timer was canceled.
     this._optimistic = false; this._adoptReported();
   }
@@ -48,10 +58,12 @@ export class HueGradientEditor extends LitElement {
     this._writer = new LiveWriter(entity, (command) => {
       const caps = this.caps;
       if (!caps.available) throw Error("Light is unavailable");
+      if (this.offProtected && command.key !== "power" && command.service !== "turn_off") return;
       if (command.domain === "hue_gradient_controller" && !caps.gradient) throw Error("Gradient control is no longer available for this light");
       return this.hass.callService(command.domain, command.service, command.data, { entity_id: entity });
     }, (error) => {
       if (error) {
+        this._powerIntent = undefined; this.powerIntentChanged?.();
         this._error = error.message || "Light command was rejected";
         this._optimistic = false; this._adoptReported();
       } else {
@@ -74,16 +86,17 @@ export class HueGradientEditor extends LitElement {
     if (state === this._lastState) return;
     this._gradientActive = this._tracker.observe(state);
     if (this.appearanceSource) this._gradientActive = this.appearanceSource();
+    const reportedColors = currentColors(state, this.caps.gradient && this._gradientActive);
+    if (reportedColors.length) this._reportedColors = reportedColors;
     const before = this._lastState;
     this._lastState = state;
+    if ((this._powerIntent === "off" && state?.state === "off") || (this._powerIntent === "on" && state?.state === "on")) this._powerIntent = undefined;
     if (state?.state !== before?.state) {
       // Power updates are authoritative even while a color edit is awaiting an
       // echo. Both palette views must show off immediately, without a timeout.
       this._optimistic = false; clearTimeout(this._reconcileTimer);
     }
-    if (!this.caps.available) {
-      this._writer?.cancelPending(); this._optimistic = false; this._drag = undefined;
-    }
+    if (!this.caps.available || (this.offProtected && state?.state !== before?.state)) this._cancelEdits();
     if (this._optimistic) {
       // Intermediate echoes cannot move a marker underneath an active gesture.
       this._externalState = state;
@@ -94,7 +107,8 @@ export class HueGradientEditor extends LitElement {
   _adoptReported() {
     if (!this._config) return;
     const colors = currentColors(this.state, this.caps.gradient && this._gradientActive);
-    const actual = colors.length ? colors : [[255,255,255]];
+    if (colors.length) this._reportedColors = colors;
+    const actual = colors.length ? colors : this.offProtected && this._reportedColors?.length ? this._reportedColors : [[255,255,255]];
     this._points = actual.map((rgb, index) => {
       const previous=this._points[index];
       const same=previous?.rgb.every((n,i)=>n===rgb[i]);
@@ -119,8 +133,19 @@ export class HueGradientEditor extends LitElement {
     });
   }
   _switchPalette() { this._whites=!this._whites; this._placePoints(); }
+  _cancelEdits() {
+    this._clearTouch(); this._drag = undefined; this._writer?.cancelPending();
+    this._optimistic = false; clearTimeout(this._reconcileTimer); this._adoptReported();
+  }
+  _preparePower(service) {
+    if (!this._config.protect_when_off) return;
+    if (service === "turn_off") { this._cancelEdits(); this._brightness = 0; }
+    this._powerIntent = service === "turn_off" ? "off" : "on";
+    this.powerIntentChanged?.(service);
+  }
   _queue(command, immediate = false) {
     if (!this.caps.available) return;
+    if (this.offProtected && command.key !== "power" && command.service !== "turn_off") return;
     this._error = ""; this._optimistic = true; clearTimeout(this._reconcileTimer);
     command.key ??= command.data.colors || command.data.rgb_color || command.data.color_temp_kelvin ? "color"
       : command.data.brightness !== undefined ? "brightness" : "power";
@@ -128,7 +153,7 @@ export class HueGradientEditor extends LitElement {
   }
   _colorCommand(immediate = false) {
     const caps = this.caps;
-    if (!caps.available || !caps.color) return;
+    if (!this.canEdit || !caps.color) return;
     const data = caps.transition || caps.gradient ? { transition: this._transition } : {};
     if (caps.gradient) {
       if (this._points.length > caps.capacity) { this._error = "The reported palette exceeds this light's capacity"; return; }
@@ -144,14 +169,14 @@ export class HueGradientEditor extends LitElement {
     }
   }
   _add() {
-    if (!this.caps.gradient || this._points.length >= this.caps.capacity) return;
+    if (!this.canEdit || !this.caps.gradient || this._points.length >= this.caps.capacity) return;
     this._points = [...this._points, { id: ++pointId, rgb: nextColor(this.points) }];
     this._placePoints();
     this._selected = this._points.length - 1;
     this._colorCommand(true);
   }
   _remove(index) {
-    if (!this.caps.gradient || this._points.length <= 1) return;
+    if (!this.canEdit || !this.caps.gradient || this._points.length <= 1) return;
     this._points = this._points.filter((_, i) => i !== index);
     this._selected = Math.min(index, this._points.length - 1);
     this._colorCommand(true);
@@ -162,7 +187,7 @@ export class HueGradientEditor extends LitElement {
       (event.clientY - rect.top - rect.height / 2) / (rect.height * .46));
   }
   _pointerDown(event, index) {
-    if (!this.caps.available || event.button > 0 || this._busyAction) return;
+    if (event.pointerType === "touch" || !this.canEdit || event.button > 0) return;
     event.preventDefault(); event.stopPropagation();
     const selected = index === this._selected;
     if (index !== undefined) this._selected = index;
@@ -172,27 +197,88 @@ export class HueGradientEditor extends LitElement {
     if (index === undefined) this._moveColor(event);
   }
   _pointerMove(event) {
+    if (event.pointerType === "touch" || !this.canEdit) return;
     if (this._drag?.id !== event.pointerId) return;
     if (Math.hypot(event.clientX - this._drag.x, event.clientY - this._drag.y) > 4) this._drag.moved = true;
     if (this._drag.moved || this._drag.index === undefined) this._moveColor(event);
   }
   _moveColor(event) {
+    if (!this.canEdit) return;
     const [x,y] = this._position(event);
     this._points = this._points.map((point, i) => i === this._selected ? { ...point,
       rgb:paletteColor(x,y,this._whites),picker:{x,y,whites:this._whites,outside:false} } : point);
     this._colorCommand();
   }
   _pointerUp(event) {
+    if (event.pointerType === "touch") return;
     if (this._drag?.id !== event.pointerId) return;
     const drag = this._drag;
     this._drag = undefined;
     if (drag.moved || drag.index === undefined) this._writer?.flush();
     else if (drag.selected && drag.index !== undefined && this._points.length > 1) this._remove(drag.index);
   }
-  _pointerCancel() {
-    this._drag = undefined; this._writer?.cancelPending(); this._optimistic = false; this._adoptReported();
+  _pointerCancel(event) {
+    if (event?.pointerType === "touch") return;
+    this._cancelEdits();
+  }
+  _clearTouch() {
+    clearTimeout(this._holdTimer); this._holdTimer = undefined;
+    this._touchGesture = undefined; this._touchReady = false;
+  }
+  _touchStart(event) {
+    if (event.touches.length !== 1) { this._touchCancel(); return; }
+    if (!this.canEdit) return;
+    this._clearTouch();
+    const point = event.composedPath().find(node => node.classList?.contains("point"));
+    const index = point ? Number(point.dataset.index) : undefined;
+    const touch = event.touches[0];
+    const gesture = { id: touch.identifier, x: touch.clientX, y: touch.clientY, index,
+      selected: index === this._selected, moved: false, armed: false };
+    this._touchGesture = gesture;
+    this._holdTimer = setTimeout(() => {
+      if (this._touchGesture !== gesture || !this.canEdit || (index !== undefined && index >= this._points.length)) { this._clearTouch(); return; }
+      gesture.armed = true; this._touchReady = true;
+      if (index !== undefined) this._selected = index;
+      this._drag = gesture;
+      if (index === undefined) this._moveColor(touch);
+    }, 400);
+  }
+  _touchMove(event) {
+    const gesture = this._touchGesture;
+    if (!gesture) return;
+    const touch = [...event.touches].find(touch => touch.identifier === gesture.id);
+    if (!touch || event.touches.length !== 1 || !this.canEdit) { this._touchCancel(); return; }
+    if (!gesture.armed) {
+      // Once scrolling wins, this entire contact stays read-only, even if the
+      // finger later pauses. Never suppress native panning before the hold.
+      if (Math.hypot(touch.clientX - gesture.x, touch.clientY - gesture.y) > 8) this._clearTouch();
+      return;
+    }
+    if (!event.cancelable) { this._touchCancel(); return; }
+    event.preventDefault();
+    if (Math.hypot(touch.clientX - gesture.x, touch.clientY - gesture.y) > 4) gesture.moved = true;
+    if (gesture.moved || gesture.index === undefined) this._moveColor(touch);
+  }
+  _touchEnd(event) {
+    const gesture = this._touchGesture;
+    const touch = [...event.changedTouches].find(touch => touch.identifier === gesture?.id);
+    if (!gesture || !touch) return;
+    if (event.cancelable) event.preventDefault(); // Suppress emulated mouse clicks.
+    this._clearTouch(); this._drag = undefined;
+    if (!this.canEdit) return;
+    if (gesture.armed) {
+      if (gesture.moved || gesture.index === undefined) this._writer?.flush();
+    } else if (gesture.index !== undefined && Math.hypot(touch.clientX - gesture.x, touch.clientY - gesture.y) <= 8) {
+      if (gesture.selected && this._points.length > 1) this._remove(gesture.index);
+      else this._selected = gesture.index;
+    }
+  }
+  _touchCancel() {
+    if (this._touchGesture?.armed) this._cancelEdits();
+    else this._clearTouch();
   }
   _pointKey(event, index) {
+    if (!this.canEdit) return;
     const movement = { ArrowLeft: [-.035,0], ArrowRight: [.035,0], ArrowUp: [0,-.035], ArrowDown: [0,.035] }[event.key];
     if (movement) {
       event.preventDefault(); this._selected = index;
@@ -210,20 +296,25 @@ export class HueGradientEditor extends LitElement {
     }
   }
   _brightnessInput(event) {
+    if (!this.canEdit) return;
     this._brightness = Number(event.target.value);
+    if (this._brightness === 0) this._preparePower("turn_off");
     const data = this.caps.transition ? { transition: this._transition } : {};
     if (this._brightness > 0) data.brightness = Math.round(this._brightness * 255 / 100);
     this._queue({ key: "brightness", domain: "light", service: this._brightness === 0 ? "turn_off" : "turn_on", data });
   }
   _temperatureInput(event) {
+    if (!this.canEdit) return;
     this._kelvin = Number(event.target.value);
     this._queue({ domain: "light", service: "turn_on", data: { color_temp_kelvin: this._kelvin,
       ...this.caps.transition ? { transition: this._transition } : {} } });
   }
   _power() {
     if (!this.caps.available || this._busyAction) return;
-    if (this.state?.state === "on") this._brightness = 0;
-    this._queue({ domain: "light", service: this.state?.state === "on" ? "turn_off" : "turn_on", data: {} }, true);
+    const service = this.state?.state === "on" && this._powerIntent !== "off" ? "turn_off" : "turn_on";
+    this._preparePower(service);
+    if (service === "turn_off") this._brightness = 0;
+    this._queue({ key: "power", domain: "light", service, data: {} }, true);
   }
   _closeMenu() { this._menu = false; }
   _moreInfo() {
@@ -236,6 +327,7 @@ export class HueGradientEditor extends LitElement {
     if (!this.caps.gradient || !this.caps.available || this._busyAction) return;
     if (action === "snapshot" && (this._points.length < 2 || this._writer?.busy || this._optimistic)) return;
     if (action === "restore" && !validSnapshot(this._snapshot, entity, this.caps)) return;
+    if (action === "restore" && this.offProtected) return;
     this._busyAction = true; this._error = "";
     try {
       await this._writer?.flush();
@@ -253,6 +345,7 @@ export class HueGradientEditor extends LitElement {
       } else {
         await serialize(entity, () => {
           if (!this.isConnected || this._config.entity !== entity) throw Error("Editor closed");
+          if (this.offProtected || !this.caps.available) return;
           return this.hass.callService("hue_gradient_controller", "restore_gradient", { snapshot: this._snapshot, transition: this._transition });
         });
         this._optimistic = false; this._adoptReported();
@@ -284,33 +377,40 @@ export class HueGradientEditor extends LitElement {
           <label>Transition <input type="number" aria-label="Transition in seconds" min="0" max="6000" step="0.1" .value=${String(this._transition)}
             @change=${(event) => { const value = Number(event.target.value); if (Number.isFinite(value) && value >= 0 && value <= 6000) this._transition = value; else event.target.value = String(this._transition); }}></label>
           ${this.hass?.services?.hue_gradient_controller?.snapshot_gradient ? html`<button ?disabled=${!caps.available || this._points.length < 2 || this._busyAction || this._optimistic} @click=${() => this._advanced("snapshot")}>Snapshot</button>` : nothing}
-          ${this.hass?.services?.hue_gradient_controller?.restore_gradient && validSnapshot(this._snapshot,this._config.entity,caps) ? html`<button ?disabled=${!caps.available || this._busyAction} @click=${() => this._advanced("restore")}>Restore</button>` : nothing}` : nothing}
+          ${this.hass?.services?.hue_gradient_controller?.restore_gradient && validSnapshot(this._snapshot,this._config.entity,caps) ? html`<button ?disabled=${!this.canEdit} @click=${() => this._advanced("restore")}>Restore</button>` : nothing}` : nothing}
         <button @click=${this._moreInfo}><ha-icon icon="mdi:information-outline"></ha-icon>More info</button>
       </div>
     </details>`;
   }
   render() {
     if (!this._config || !this.hass) return nothing;
-    const caps = this.caps, disabled = !caps.available || this._busyAction;
+    const caps = this.caps, disabled = !this.canEdit, powerDisabled = !caps.available || this._busyAction;
     const positions = this._points.map(point=>point.picker ?? markerPosition(point.rgb,this._whites));
     const path = connectorPath(positions);
-    const on=this.state?.state === "on", reportedColors=currentColors(this.state,caps.gradient&&this._gradientActive), powerRgb=reportedColors[0];
+    const on=this.state?.state === "on" && this._powerIntent !== "off", reportedColors=currentColors(this.state,caps.gradient&&this._gradientActive), powerRgb=reportedColors[0];
     const iconBackground=on&&this._config.icon_gradient_background?colorLayer(reportedColors,35):undefined;
     return html`<section class=${`editor${this._config.embedded ? " embedded" : ""}${!this._config.card_background ? " no-card-background" : ""}${this._menu ? " menu-open" : ""}`} aria-label=${`${this.name} light controls`}
       @focusin=${e=>{if(this._menu&&!e.composedPath().some(node=>node.localName==="details"))this._closeMenu();}}
       @keydown=${(e)=>{if(this._menu&&e.key==="Escape"){e.preventDefault();e.stopPropagation();this._closeMenu();this.renderRoot.querySelector("summary")?.focus();}}}>
       ${this._menu ? html`<div class="menu-backdrop" aria-hidden="true" @click=${this._closeMenu} @pointerdown=${(e)=>e.stopPropagation()}></div>` : nothing}
       ${!this._config.embedded ? html`<div class="handle" aria-hidden="true"></div>` : nothing}
-        <header><button class=${`header-icon icon${on ? " on" : ""}`} style=${styleMap({"--hgc-power-color":powerRgb?`rgb(${powerRgb.join(",")})`:undefined,"--hgc-icon-gradient":iconBackground})} aria-label=${on ? "Turn off" : "Turn on"} ?disabled=${disabled} @click=${this._power}>
+        <header><button class=${`header-icon icon${on ? " on" : ""}`} style=${styleMap({"--hgc-power-color":powerRgb?`rgb(${powerRgb.join(",")})`:undefined,"--hgc-icon-gradient":iconBackground})} aria-label=${on ? "Turn off" : "Turn on"} ?disabled=${powerDisabled} @click=${this._power}>
           <ha-icon .icon=${this.icon}></ha-icon></button><h2>${this.name}</h2>
           ${this._overflow()}
           ${this.popup && !this._config.embedded ? html`<button class="icon" aria-label="Close gradient editor" @click=${() => this.dispatchEvent(new CustomEvent("hgc-close", { bubbles:true,composed:true }))}><ha-icon icon="mdi:close"></ha-icon></button>` : nothing}
         </header>
       ${!caps.available ? html`<p class="status" role="status">${this.state ? "Light unavailable" : `Entity ${this._config.entity} not found`}</p>` : nothing}
+      ${caps.available && this.offProtected ? html`<div class="off-status" role="status">
+        <span>${this._powerIntent ? `Turning ${this._powerIntent === "off" ? "off" : "on"}… Editing locked.` : "Light is off. Turn on to edit."}</span>
+        <button ?disabled=${powerDisabled} @click=${this._power}><ha-icon icon="mdi:power"></ha-icon>Turn on</button>
+      </div>` : nothing}
       ${caps.color ? html`
-        <div class="wheel" role="group" aria-label=${this._whites ? "White-tone color palette" : "Hue and saturation color wheel"}
+        <div class=${`wheel${this.offProtected ? " off" : ""}${this._touchReady ? " touch-ready" : ""}`} role="group" aria-disabled=${String(disabled)} aria-label=${this._whites ? "White-tone color palette" : "Hue and saturation color wheel"}
           @pointerdown=${(e) => this._pointerDown(e)} @pointermove=${this._pointerMove} @pointerup=${this._pointerUp}
-          @pointercancel=${this._pointerCancel} @lostpointercapture=${() => { if (this._drag) this._pointerCancel(); }}>
+          @pointercancel=${this._pointerCancel} @lostpointercapture=${(e) => { if (this._drag && e.pointerType !== "touch") this._pointerCancel(); }}
+          @touchstart=${this._touchHandlers.start} @touchmove=${this._touchHandlers.move}
+          @touchend=${this._touchHandlers.end} @touchcancel=${this._touchHandlers.cancel}
+          @contextmenu=${e=>e.preventDefault()}>
           <canvas aria-hidden="true"></canvas>
           <svg viewBox="0 0 100 100" aria-hidden="true">${svg`<path class="connector-shadow" d=${path}></path><path class="connector" d=${path}></path>`}</svg>
           ${repeat(this._points,(point) => point.id,(point,index) => {
@@ -318,16 +418,18 @@ export class HueGradientEditor extends LitElement {
             const face=this._whites&&pos.outside?paletteColor(pos.x,pos.y,true):point.rgb;
             const text=face.reduce((sum,n,i)=>sum+n*[.2126,.7152,.0722][i],0)>155 ? "var(--hgc-point-dark-text,#111)" : "var(--hgc-point-light-text,#fff)";
             return html`<button class=${`point${selected ? " selected" : ""}${pos.outside ? " outside" : ""}`}
+              data-index=${index}
               style=${styleMap({ left:`${50+pos.x*46}%`,top:`${50+pos.y*46}%`,"--point-color":`rgb(${face.join(",")})`,"--point-actual-color":`rgb(${point.rgb.join(",")})`,"--point-text":text })}
               ?disabled=${disabled} aria-label=${`Color ${index+1}: RGB ${point.rgb.join(", ")}${pos.outside ? ", outside white palette" : ""}${selected && caps.gradient && this._points.length>1 ? ". Activate to remove; arrow keys move" : ". Activate to select; arrow keys move"}`}
               aria-pressed=${String(selected)} title=${pos.outside ? "Outside white palette; small swatch shows preserved actual color" : `Color ${index+1}`}
               @pointerdown=${(e)=>this._pointerDown(e,index)} @keydown=${(e)=>this._pointKey(e,index)}
-              @click=${(e)=> { if(e.detail === 0) { if(selected) this._remove(index); else this._selected=index; } }}>
+              @click=${(e)=> { if(e.detail === 0 && this.canEdit) { if(selected) this._remove(index); else this._selected=index; } }}>
               ${selected && caps.gradient && this._points.length>1 ? html`<ha-icon icon="mdi:close"></ha-icon>` : index+1}
               ${this._whites&&pos.outside ? html`<span class="actual-color" aria-hidden="true"></span>` : nothing}
             </button>`;
           })}
         </div>
+        <p class="touch-hint" role="status">${this.offProtected ? "Swipe to scroll" : this._touchReady ? "Ready to drag" : "Hold to edit colors · Swipe to scroll"}</p>
         <div class="row">
           ${caps.gradient ? html`<button @click=${this._add} ?disabled=${disabled || this._points.length>=caps.capacity}><ha-icon icon="mdi:plus"></ha-icon>Add color</button>
             <span class="count" aria-live="polite">${this._points.length} / ${caps.capacity}</span>` : nothing}
@@ -344,10 +446,10 @@ export class HueGradientEditor extends LitElement {
         <input class="brightness" type="range" style=${`--hgc-slider-level:${this._brightness}%`} aria-label="Brightness" aria-valuetext=${`${this._brightness}%`} min="0" max="100" step="1" .value=${String(this._brightness)}
           ?disabled=${disabled} @input=${this._brightnessInput} @change=${()=>this._writer?.flush()}>
         <output>${this._brightness}%</output></div>` : nothing}
-      ${!caps.color && !caps.brightness && !caps.temperature ? html`<button @click=${this._power} ?disabled=${disabled}><ha-icon icon="mdi:power"></ha-icon>${this.state?.state === "on" ? "Turn off" : "Turn on"}</button>` : nothing}
+      ${!this.offProtected && !caps.color && !caps.brightness && !caps.temperature ? html`<button @click=${this._power} ?disabled=${powerDisabled}><ha-icon icon="mdi:power"></ha-icon>${on ? "Turn off" : "Turn on"}</button>` : nothing}
       ${caps.gradient ? html`<hgc-mode-select .modes=${caps.modes} .value=${this._mode ?? ""}
         .disabled=${disabled || this._points.length<2}
-        @mode-changed=${(e)=> {this._mode=e.detail.value;this._colorCommand(true);}}></hgc-mode-select>` : nothing}
+        @mode-changed=${(e)=> {if(this.canEdit){this._mode=e.detail.value;this._colorCommand(true);}}}></hgc-mode-select>` : nothing}
       ${this._error ? html`<p role="alert">${this._error}</p>` : nothing}
     </section>`;
   }

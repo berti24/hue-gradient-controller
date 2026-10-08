@@ -21,7 +21,7 @@ export const available = (state) => Boolean(state && !["unavailable", "unknown"]
 export function normalizeConfig(input, editor = false) {
   if (!input || !/^light\.[a-z0-9_]+$/.test(input.entity ?? "")) throw Error("Choose a light entity");
   const config = { ...input };
-  for (const [key,value] of [["icon_gradient_background",false],...editor?[]:[["color_background",true],["show_brightness_slider",false]]]) {
+  for (const [key,value] of [["protect_when_off",false],["icon_gradient_background",false],...editor?[]:[["color_background",true],["show_brightness_slider",false]]]) {
     if (config[key] != null && typeof config[key] !== "boolean") throw Error(`${key} must be true or false`);
     config[key] ??= value;
   }

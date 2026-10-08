@@ -55,6 +55,7 @@ All public card options are available in its visual editor:
 | Design | `design` | `tile`; "Tile like" (`tile`) or "Bubble like" (`bubble`) |
 | Name | `name` | Entity's displayed name |
 | Icon | `icon` | Entity icon/native light fallback |
+| Protect while off | `protect_when_off` | `false`; lock editing while the light is off |
 | Subtitle | `state_content` | `['state', 'brightness']`; native Tile picker; supports ordered state/attribute names, `hgc_color_count`, `hgc_gradient_mode`; `[]` hides the line |
 | Brightness slider | `show_brightness_slider` | `false`; Tile-like cards only, adds a native brightness control below the header |
 | Gradient icon background | `icon_gradient_background` | `false`; also supported by the standalone editor and forwarded to its popup |
@@ -67,6 +68,7 @@ entity: light.living_room_strip
 design: bubble
 name: Living room strip
 icon: mdi:led-strip-variant
+protect_when_off: true
 state_content:
   - state
   - brightness
@@ -98,7 +100,9 @@ across the remaining track. It follows live color changes independently of the
 card background option. Ordinary color/temperature lights use their current
 color; lights without brightness support omit the feature. Native Tile handles
 keyboard/touch interactions and the extra dashboard row. Adjusting brightness
-turns an off light on; unavailable lights cannot send commands. Bubble keeps
+turns an off light on by default; `protect_when_off: true` disables this slider
+while off and discards unsent brightness requests on power-off. Unavailable
+lights cannot send commands. Bubble keeps
 its original layout and ignores this Tile-only option.
 
 Both configuration editors show the version bundled in the loaded JavaScript.
@@ -146,6 +150,12 @@ supplied state alone.
   Coincident marker targets initially separate slightly so each is reachable.
   During dragging, the selected marker follows the pointer continuously and
   neighboring markers keep their positions, including around neutral white.
+- On touch screens, hold a point or the wheel background for about 400 ms to
+  edit colors. A ring and **Ready to drag** hint show when editing is armed.
+  Swiping before the hold completes scrolls the dashboard or popup without
+  moving, recoloring or deleting points. Short background taps do not edit;
+  short point taps select, or delete the selected X. Holding the X without
+  moving does not delete it. Mouse dragging and keyboard editing stay immediate.
 - Add color appends a point opposite the last color's hue on the color wheel.
   If that color is already used, it chooses the nearest unused color; neutral
   points start a saturated color. Capacity is reported by the
@@ -157,7 +167,17 @@ supplied state alone.
   dragging changes the selected point to the displayed palette and removes the
   off-palette swatch.
 - Brightness applies immediately. Zero invokes `light.turn_off`; it is never
-  sent to `set_gradient`. Intentional color/brightness edits turn the light on.
+  sent to `set_gradient`. With the default `protect_when_off: false`, intentional
+  color/brightness edits turn the light on.
+- Enable **Protect while off** (`protect_when_off: true`) to keep the last
+  reported palette visible but dimmed and lock color, point, mode, temperature,
+  brightness and Restore controls while off. Use **Turn on** before editing;
+  controls unlock only after HA reports on. Turning off immediately cancels
+  gestures and unsent edits, including commands waiting in the shared entity
+  queue; reported off updates do the same. Accepted requests cannot be recalled.
+  Palette view switching, Snapshot and More info remain available without
+  changing the light. This option belongs to each card/editor, not the light or
+  the integration's service actions.
 - The visually unlabeled dropdown has the accessible name **Gradient mode**.
   Its choices are only reported supported modes: Blended, Mirrored, Pixelated,
   Segments. It is disabled with one point. No unsupported mode is substituted.
@@ -184,12 +204,14 @@ authority. Disconnect cancels unsent work, not service calls already accepted.
 
 ## Embed inside an original Bubble popup
 
-The editor has its own visual editor with Entity, Name, Icon, Embedded and
-Card background. The
+The editor has its own visual editor with Entity, Name, Icon, Protect while off,
+Embedded and Card background. The
 `embedded` boolean (default false) removes the popup handle and close control and
 inherits the host surface. The light icon, circular icon background, title,
 power control and overflow remain visible. The editor also exposes
 `icon_gradient_background` (default false) in YAML and its visual editor.
+`protect_when_off` defaults to false here too; enable it independently on an
+embedded editor to lock edits while off and keep explicit power controls usable.
 
 Enable **Card background** (`card_background: true`) to give an embedded editor
 its own theme surface, border, shadow and padding on a dashboard. Set it to

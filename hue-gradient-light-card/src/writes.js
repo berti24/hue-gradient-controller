@@ -11,7 +11,7 @@ export function serialize(entity, operation) {
 export class LiveWriter {
   constructor(entity, send, settled, delay = 120) {
     this.entity = entity; this.send = send; this.settled = settled; this.delay = delay;
-    this.revision = 0; this.disposed = false;
+    this.revision = 0; this.generation = 0; this.disposed = false;
   }
   enqueue(command, immediate = false) {
     if (this.disposed) return;
@@ -32,11 +32,11 @@ export class LiveWriter {
     clearTimeout(this.timer); this.timer = undefined; this.due = undefined;
     if (!this.pending?.size || this.disposed) return;
     if (this.running) { this.finalRequested = true; return this.running; }
-    const commands = [...this.pending.values()], revision = this.revision;
+    const commands = [...this.pending.values()], revision = this.revision, generation = this.generation;
     this.pending.clear();
     this.running = serialize(this.entity, async () => {
       for (const command of commands) {
-        if (this.disposed) return;
+        if (this.disposed || generation !== this.generation) return;
         await this.send(command);
       }
     });
@@ -50,6 +50,11 @@ export class LiveWriter {
     }
   }
   get busy() { return Boolean(this.pending?.size || this.running); }
-  cancelPending() { clearTimeout(this.timer); this.timer = undefined; this.pending = undefined; this.due = undefined; }
+  cancelPending() {
+    clearTimeout(this.timer); this.timer = undefined; this.pending = undefined; this.due = undefined;
+    // Invalidate unsent commands already captured by flush in a shared lane,
+    // and prevent a canceled batch's completion from changing editor feedback.
+    this.generation++; this.revision++;
+  }
   dispose() { this.disposed = true; this.cancelPending(); }
 }

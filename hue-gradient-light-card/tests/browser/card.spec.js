@@ -31,7 +31,7 @@ test("actual Tile/Bubble dimensions and sizing match originals in masonry and Se
 test("full visual configuration synchronizes Name/Icon, design and opacity without commands",async({page})=>{
   await ready(page);
   const schema=await page.evaluate(()=>configEditor.shadowRoot.querySelector("ha-form").schema);
-  expect(schema.map((field)=>field.name)).toEqual(["entity","design","name","icon","state_content","show_brightness_slider","icon_gradient_background","color_background","color_background_opacity"]);
+  expect(schema.map((field)=>field.name)).toEqual(["entity","design","name","icon","protect_when_off","state_content","show_brightness_slider","icon_gradient_background","color_background","color_background_opacity"]);
   expect(schema[0].selector.entity.domain).toBe("light");
   await page.evaluate(()=>{
     configEditor.addEventListener("config-changed",(e)=>{window.saved=e.detail.config;tile.setConfig(e.detail.config);});
