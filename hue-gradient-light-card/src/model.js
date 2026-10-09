@@ -51,6 +51,8 @@ export function normalizeConfig(input, editor = false) {
     }
     config.design ??= "tile";
     if (!["tile", "bubble"].includes(config.design)) throw Error("Design must be tile or bubble");
+    config.features_position ??= "bottom";
+    if (!["bottom", "inline"].includes(config.features_position)) throw Error("features_position must be bottom or inline");
     config.color_background_opacity ??= 70;
     const opacity = config.color_background_opacity;
     if (typeof opacity !== "number" || !Number.isFinite(opacity) || opacity < 0 || opacity > 100) {
@@ -68,8 +70,8 @@ export function subtitleValues(hass, config, gradientActive) {
   const values = {};
   const fields = subtitleFields(config);
   if (fields.includes("state")) values.state = hass.formatEntityState?.(state) ?? state.state;
-  if (fields.includes("brightness") && caps.available && caps.brightness && (state.state === "off" || Number.isFinite(attrs.brightness))) {
-    values.brightness = `${state.state === "off" ? 0 : Math.round(attrs.brightness / 255 * 100)}%`;
+  if (fields.includes("brightness") && state.state === "on" && caps.brightness && Number.isFinite(attrs.brightness)) {
+    values.brightness = `${Math.round(attrs.brightness / 255 * 100)}%`;
   }
   const colors = currentColors(state, caps.gradient && gradientActive);
   if (fields.includes("hgc_color_count") && caps.available && colors.length) values.hgc_color_count = `${colors.length} ${colors.length === 1 ? "color" : "colors"}`;

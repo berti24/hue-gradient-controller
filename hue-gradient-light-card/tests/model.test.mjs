@@ -54,8 +54,13 @@ test("subtitle options are independent and reflect reported capabilities and gra
     assert.equal(Object.hasOwn(subtitleValues(source,{...config,[option]:false},true),key),false);
   }
   assert.deepEqual(subtitleValues(source,config,false),{state:"On",brightness:"50%",hgc_color_count:"1 color"});
-  const off={...source,states:{"light.strip":{...state,state:"off",attributes:{...state.attributes,brightness:null}}}};
-  assert.equal(subtitleValues(off,config,true).brightness,"0%");
+  for(const brightness of [null,0,128,undefined]){
+    const off={...source,states:{"light.strip":{...state,state:"off",attributes:{...state.attributes,brightness}}}};
+    assert.equal(Object.hasOwn(subtitleValues(off,config,true),"brightness"),false);
+    assert.equal(subtitleValues(off,config,true).state,"Off");
+  }
+  const zero={...source,states:{"light.strip":{...state,attributes:{...state.attributes,brightness:0}}}};
+  assert.equal(subtitleValues(zero,config,true).brightness,"0%");
   const basic={...source,states:{"light.strip":{...state,attributes:{supported_color_modes:["onoff"]}}}};
   assert.deepEqual(subtitleValues(basic,config,false),{state:"On"});
   assert.deepEqual(subtitleValues(source,{...config,show_state:false,show_brightness:false,show_color_count:false,show_mode:false},true),{});

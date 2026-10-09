@@ -197,7 +197,7 @@ The subtitle uses Home Assistant's native Tile option picker: add, remove and
 reorder fields. Existing `show_state`, `show_brightness`, `show_color_count` and
 `show_mode` YAML booleans still work when `state_content` is absent; an explicit
 `state_content` takes precedence. Selecting no fields hides the line.
-Brightness is zero while off and omitted for lights without brightness
+Brightness is hidden while off and omitted for lights without brightness
 support. Color count follows the currently reported color/gradient appearance;
 mode appears only for an eligible active multi-point gradient. Presentation
 values are scoped to the owned native renderer and never published to HA state.

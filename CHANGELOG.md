@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.6] - 2026-10-10
+
+### Fixed
+
+- Hide brightness in Bubble and Tile dashboard card subtitles while the light
+  is off, and restore it when the light turns on. Brightness-only subtitles
+  disappear while off; the native Tile brightness slider retains its off position.
+- Cover retained and missing off-state brightness, on/off transitions and both
+  supported Bubble versions at desktop/mobile widths; rebuild the dashboard resource.
+
 ## [0.7.5] - 2026-10-10
 
 ### Fixed

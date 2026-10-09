@@ -87,7 +87,7 @@ export class HueGradientLightCard extends HTMLElement {
       show_state:true,show_attribute:false,button_action:{tap_action:OPEN},tap_action:{action:"fire-dom-event",hgc_power:true},
       styles:BUBBLE_STYLES}
       : {type:"tile",...base,state_content:["state","brightness"],tap_action:OPEN,
-        ...design==="tile"&&this._config.show_brightness_slider?{features:[{type:"light-brightness"}],features_position:"bottom"}:{},
+        ...design==="tile"&&this._config.show_brightness_slider?{features:[{type:"light-brightness"}],features_position:this._config.features_position}:{},
         icon_tap_action:{action:"fire-dom-event",hgc_power:true}};
     try{
       let card;
@@ -139,7 +139,8 @@ export class HueGradientLightCard extends HTMLElement {
     // No state is published or changed in Home Assistant's real hass object.
     const attributes={...state?.attributes};
     for(const key of ["hgc_color_count","hgc_gradient_mode"])if(Object.hasOwn(values,key))attributes[key]=values[key];
-    if(state?.state==="off"&&values.brightness)attributes.brightness=0;
+    // Keep the native brightness slider at its off position independently of subtitles.
+    if(state?.state==="off")attributes.brightness=0;
     const states=state?{...source.states,[entity]:{...state,attributes}}:source.states;
     this._card.hass={...source,states,
       // Native brightness interaction stays native; only its writes join the
