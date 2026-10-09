@@ -46,7 +46,7 @@ export class HueGradientLightCard extends HTMLElement {
     if(config.entity!==this._config?.entity){this._tracker=new AppearanceTracker();this._powerIntent=undefined;this._brightnessRevision++;this.closePopup();}
     this._config=config;this._renderNative();
     if(!config.protect_when_off)this._powerIntent=undefined;
-    if(this._editor)this._editor.setConfig({...this._editor._config,protect_when_off:config.protect_when_off});
+    if(this._editor)this._editor.setConfig({...this._editor._config,protect_when_off:config.protect_when_off,presets_expansion:config.presets_expansion});
   }
   set hass(value) {
     const before=this._hass?.states?.[this._config?.entity],state=value?.states?.[this._config?.entity];
@@ -256,8 +256,14 @@ export class HueGradientLightCard extends HTMLElement {
     const style=document.createElement("style");style.textContent="dialog::backdrop{background:var(--hgc-backdrop-color,rgba(0,0,0,.5))}";dialog.append(style);
     const editor=document.createElement("hue-gradient-editor");editor.popup=true;
     editor.appearanceSource=()=>this._gradientActive;
+    const entity=this._config.entity;
+    editor.gradientConfirmed=applied=>{
+      if(this._config.entity===entity&&this._tracker.confirmGradient(this.hass.states[entity],applied)) {
+        this._gradientActive=true;this._updateRendererState();this._styleSurface();
+      }
+    };
     editor.powerIntentChanged=service=>this._setPowerIntent(service);
-    editor.setConfig({type:"custom:hue-gradient-editor",entity:this._config.entity,protect_when_off:this._config.protect_when_off,icon_gradient_background:this._config.icon_gradient_background,...this._config.name?{name:this._config.name}:{},...this._config.icon?{icon:this._config.icon}:{}});
+    editor.setConfig({type:"custom:hue-gradient-editor",entity:this._config.entity,protect_when_off:this._config.protect_when_off,presets_expansion:this._config.presets_expansion,icon_gradient_background:this._config.icon_gradient_background,...this._config.name?{name:this._config.name}:{},...this._config.icon?{icon:this._config.icon}:{}});
     editor.hass=this.hass;editor._powerIntent=this._powerIntent;dialog.append(editor);this.shadowRoot.append(dialog);
     this._dialog=dialog;this._editor=editor;
     dialog.addEventListener("hgc-close",()=>this.closePopup());

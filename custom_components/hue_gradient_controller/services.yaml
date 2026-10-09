@@ -92,3 +92,34 @@ restore_gradient:
           step: 0.1
           unit_of_measurement: seconds
           mode: box
+
+apply_preset:
+  name: Apply preset
+  description: Apply a stored gradient recipe to compatible native Hue lights without changing brightness.
+  target:
+    entity:
+      domain: light
+  fields:
+    preset_id:
+      name: Preset ID
+      description: Built-in ID (for example builtin:sunset) or custom preset ID returned by the library.
+      required: true
+      example: builtin:sunset
+      selector:
+        text:
+    turn_on:
+      name: Turn on
+      description: Turn on the light in the same Hue update.
+      default: true
+      selector:
+        boolean:
+    transition:
+      name: Transition
+      description: Optional transition duration in seconds.
+      selector:
+        number:
+          min: 0
+          max: 6000
+          step: 0.1
+          unit_of_measurement: seconds
+          mode: box

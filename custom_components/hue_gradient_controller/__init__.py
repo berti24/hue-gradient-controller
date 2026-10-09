@@ -9,7 +9,10 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryError
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.dispatcher import (
+    async_dispatcher_connect,
+    async_dispatcher_send,
+)
 
 from .compat import (
     async_refresh_hue_light_states,
@@ -23,12 +26,20 @@ from .issues import (
     async_create_incompatible_native_hue_issue,
     async_update_bridge_selection_issue,
 )
+from .preset_ws import async_register_preset_commands
+from .presets import DATA_PRESETS, SIGNAL_PRESETS, PresetLibrary
 from .service import (
     async_register_gradient_services,
     async_unregister_gradient_services,
 )
 
 type HueGradientControllerConfigEntry = ConfigEntry[None]
+
+
+async def async_setup(hass: HomeAssistant, _config: dict) -> bool:
+    """Register authenticated library commands once per installation."""
+    async_register_preset_commands(hass)
+    return True
 
 
 async def async_setup_entry(
@@ -44,6 +55,10 @@ async def async_setup_entry(
 
     selection = frozenset(entry.options.get(CONF_HUE_BRIDGES, [SELECT_ALL_HUE_BRIDGES]))
     hass.data[DOMAIN] = selection
+    library = PresetLibrary(hass)
+    await library.async_load()
+    hass.data[DATA_PRESETS] = library
+    async_dispatcher_send(hass, SIGNAL_PRESETS, None)
     async_clear_setup_issues(hass)
     async_update_bridge_selection_issue(hass, selection)
 
@@ -71,6 +86,11 @@ async def async_unload_entry(
 ) -> bool:
     """Unload Philips Hue Gradient Controller."""
     async_unregister_gradient_services(hass)
+    if library := hass.data.get(DATA_PRESETS):
+        async with library.lock:
+            library.ready = False
+            hass.data.pop(DATA_PRESETS, None)
+    async_dispatcher_send(hass, SIGNAL_PRESETS, None)
     hass.data.pop(DOMAIN, None)
     uninstall_hue_light_attribute_hook()
     async_refresh_hue_light_states(hass)

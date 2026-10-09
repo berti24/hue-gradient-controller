@@ -42,19 +42,31 @@ export function markerPosition(rgb, whites = false, preferred) {
 export function connectorPath(points) {
   if (points.length < 2) return "";
   const at = (p) => `${(50 + p.x * 46).toFixed(3)} ${(50 + p.y * 46).toFixed(3)}`;
+  const edges=points.slice(1).map((point,index)=>{
+    const dx=point.x-points[index].x,dy=point.y-points[index].y,length=Math.hypot(dx,dy);
+    return {x:length?dx/length:0,y:length?dy/length:0,length};
+  });
+  // Share the direction and handle length on both sides of each interior
+  // marker. Short, distance-scaled handles avoid separate radial bows/kinks.
+  const handles=points.map((point,index)=>{
+    const incoming=edges[index-1],outgoing=edges[index];
+    const dx=(incoming?.x??0)+(outgoing?.x??0),dy=(incoming?.y??0)+(outgoing?.y??0);
+    const norm=Math.hypot(dx,dy),x=norm?dx/norm:0,y=norm?dy/norm:0;
+    const desired=Math.min(incoming?.length??Infinity,outgoing?.length??Infinity)*.25;
+    const dot=point.x*x+point.y*y;
+    const root=Math.sqrt(Math.max(0,dot*dot+1-point.x*point.x-point.y*point.y));
+    // Bound control points along this direction, preserving tangent continuity
+    // while keeping the entire Bezier in the convex wheel disc.
+    const limit=Math.min(incoming?root+dot:Infinity,outgoing?root-dot:Infinity);
+    const length=norm?Math.max(0,Math.min(desired,limit))*.98:0;
+    return {x:x*length,y:y*length};
+  });
   let path = `M ${at(points[0])}`;
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1], b = points[i];
-    const dx = b.x - a.x, dy = b.y - a.y, distance = Math.hypot(dx, dy);
-    const mid = { x: (a.x+b.x)/2, y: (a.y+b.y)/2 };
-    let direction = [mid.x, mid.y];
-    // Opposite points have no outward midpoint; choose a stable perpendicular.
-    if (Math.hypot(...direction) < 0.001) direction = [-dy, dx];
-    const norm = Math.hypot(...direction) || 1;
-    const bow = Math.min(0.48, distance * 0.4);
-    const control = discPoint(mid.x + direction[0] / norm * bow, mid.y + direction[1] / norm * bow);
-    // Quadratic Beziers stay in the convex disc when all control points are in it.
-    path += ` Q ${at({ x: control[0], y: control[1] })} ${at(b)}`;
+    const first={x:a.x+handles[i-1].x,y:a.y+handles[i-1].y};
+    const second={x:b.x-handles[i].x,y:b.y-handles[i].y};
+    path += ` C ${at(first)} ${at(second)} ${at(b)}`;
   }
   return path;
 }

@@ -34,6 +34,12 @@ remain response payloads in component memory and are never reconstructed in RGB.
 Per-entity shared serial lanes order writes across instances. Drags coalesce by
 control channel, give immediate local feedback, and flush on release. Unconfirmed
 optimistic state expires after the transition plus event delivery allowance.
+Marker placement is separate from live RGB display values: unchanged authoritative
+xy, confirmed preset coordinates in the editor that created the preview, and
+small RGB rounding differences retain the picker location. Reported RGB swatches
+still update; changed live palettes remain
+authoritative. Connector paths share bounded cubic tangents through neighboring
+markers, with distance-scaled handles kept within the wheel disc.
 Disconnect discards pending writes and listeners; an already accepted service
 request cannot be canceled. No background retries or persistence are added.
 
@@ -77,7 +83,10 @@ or create entities. The editor's explicit More info action emits HA's standard
 Native Hue `color_mode` differentiates temperature from XY, but does not expose a
 gradient-active flag. Observe native XY changes with unchanged historical xy
 points and mode to suppress stale gradients during a session; changed gradient
-points or mode restore the gradient appearance. Ignore derived RGB/HS changes.
+points or mode restore the gradient appearance. Ignore derived RGB/HS changes
+and native XY echoes matching the first gradient point within display rounding
+tolerance. An ordinary whole-light command to exactly that first color is also
+ambiguous without an upstream active-state flag.
 An initial state with unchanged retained points is inherently ambiguous. A future
 authoritative upstream active-state field can remove that ambiguity without
 broadening the Python compatibility hook.

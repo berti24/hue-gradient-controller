@@ -53,6 +53,34 @@ const params=new URLSearchParams(location.search);
 if(!params.has("noBubble"))await import(`/.cache/bubble-card-${params.get("bubble")||"3.4.1"}.js`);
 const helpers=await window.loadCardHelpers();
 window.calls=[];
+const presetCatalogue=await fetch("/custom_components/hue_gradient_controller/preset_catalogue.json").then(r=>r.json());
+const fixturePresets=presetCatalogue.map(item=>({id:item.id,name:item.name,mode:"interpolated_palette",builtin:true,revision:1,
+  preview_rgb:item.colors.map(color=>[1,3,5].map(offset=>parseInt(color.slice(offset,offset+2),16))),can_edit:false}));
+window.presetStore={presets:fixturePresets,users:{}};
+window.presetSubscribers=new Set();
+function presetView(){const user=hass.user.id,prefs=presetStore.users[user]??{favorites:[],expanded:false};
+  return {available:true,presets:presetStore.presets.map(item=>({...item,can_edit:!item.builtin&&(item.creator_id===user||hass.user.is_admin)})),...prefs};}
+window.pushPresets=()=>{for(const listener of presetSubscribers)listener(structuredClone(presetView()));};
+async function presetRequest(request){
+  const op=request.type.split("/").at(-1),user=hass.user.id;
+  const prefs=presetStore.users[user]??={favorites:[],expanded:false};
+  let preset=presetStore.presets.find(item=>item.id===request.preset_id);
+  if(op==="preferences")prefs.expanded=request.expanded;
+  else if(op==="favorite")prefs.favorites=request.favorite?[...new Set([...prefs.favorites,request.preset_id])]:prefs.favorites.filter(id=>id!==request.preset_id);
+  else if(op==="save"){
+    if(preset&&preset.revision!==request.revision)throw Error("Preset changed. Review it and try again");
+    const attrs=hass.states[request.source_entity_id].attributes;
+    preset={...preset,id:preset?.id??`custom:fixture-${presetStore.presets.length}`,name:request.name,builtin:false,
+      creator_id:preset?.creator_id??user,revision:(preset?.revision??0)+1,colors_xy:structuredClone(attrs.gradient_colors_xy),
+      preview_rgb:structuredClone(attrs.gradient_colors_rgb),mode:attrs.gradient_mode,can_edit:true};
+    presetStore.presets=presetStore.presets.filter(item=>item.id!==preset.id).concat(preset);
+  }else if(op==="rename"){preset.name=request.name;preset.revision++;}
+  else if(op==="delete"){
+    presetStore.presets=presetStore.presets.filter(item=>item.id!==preset.id);
+    for(const value of Object.values(presetStore.users))value.favorites=value.favorites.filter(id=>id!==preset.id);
+  }
+  pushPresets();return {preset_id:preset?.id};
+}
 const gradient={supported_color_modes:["xy","color_temp"],color_mode:"xy",friendly_name:"Living room strip",brightness:179,
   icon:"mdi:lightbulb",rgb_color:[255,119,0],xy_color:[.55,.4],supported_features:32,
   gradient_capable:true,gradient_points_capable:7,gradient_modes:["interpolated_palette","interpolated_palette_mirrored","random_pixelated","segmented_palette"],gradient_mode:"interpolated_palette",
@@ -72,7 +100,11 @@ window.hass={
   formatEntityAttributeName:(_s,key)=>key,
   formatEntityAttributeValue:(s,key)=>key==="brightness"?`${Math.round(s.attributes[key]/255*100)}%`:String(s.attributes[key]??""),
   hassUrl:(path)=>path,auth:{data:{access_token:"fixture-only"}},
-  connection:{subscribeMessage:async()=>()=>{},sendMessagePromise:async()=>[]},
+  connection:{subscribeMessage:async(callback,message)=>{
+    if(message?.type!=="hue_gradient_controller/presets/subscribe")return ()=>{};
+    if(params.has("noPresets"))throw Error("Preset library unavailable");
+    presetSubscribers.add(callback);callback(structuredClone(presetView()));return ()=>presetSubscribers.delete(callback);
+  },sendMessagePromise:async()=>[]},
   callApi:async()=>[],fetchWithAuth:async()=>new Response("[]"),
   callService:async(domain,service,data,target)=>{
     window.calls.push({domain,service,data:structuredClone(data),target});
@@ -80,9 +112,20 @@ window.hass={
     if(!params.has("noEcho"))simulateLightUpdate(domain,service,data,target);
   },
   callWS:async(request)=>{
+    if(request.type.startsWith("hue_gradient_controller/presets/"))return presetRequest(request);
     if(request.type==="frontend/get_icons")return {resources:{light:{default:"mdi:lightbulb"}}};
     if(request.type!=="call_service")return {};
-    window.calls.push(request);return {response:{version:1,entities:{"light.strip":{colors_xy:gradient.gradient_colors_xy,mode:gradient.gradient_mode,on:true,brightness:70.123}},skipped:{}}};
+    window.calls.push(request);
+    if(window.rejectNext){window.rejectNext=false;throw Error("Backend rejected test command");}
+    if(request.service==="apply_preset"){
+      const preset=presetStore.presets.find(item=>item.id===request.service_data.preset_id);
+      const xy=preset.colors_xy??preset.preview_rgb.map(simulatedXy),entity=request.target.entity_id;
+      if(!params.has("noEcho"))updateHass({states:{...hass.states,[entity]:{...hass.states[entity],state:"on",
+        attributes:{...hass.states[entity].attributes,color_mode:"xy",gradient_colors_xy:xy,
+          gradient_colors_rgb:preset.preview_rgb,gradient_mode:preset.mode,rgb_color:preset.preview_rgb[0],xy_color:xy[0]}}}});
+      return {response:{applied:{[entity]:{colors_xy:xy,mode:preset.mode}},skipped:{}}};
+    }
+    return {response:{version:1,entities:{"light.strip":{colors_xy:gradient.gradient_colors_xy,mode:gradient.gradient_mode,on:true,brightness:70.123}},skipped:{}}};
   },
 };
 // Interactive preview only: echo successful edits into simulated hass state.

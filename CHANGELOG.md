@@ -5,6 +5,72 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2026-10-09
+
+### Fixed
+
+- Refresh popup preset confirmations through the native card renderer so
+  successful applications do not display an error and reapplication restores
+  gradient subtitles.
+- Check active custom preset highlights against the current shared recipe.
+  Color and mode updates clear stale highlights; rename-only changes preserve
+  selection. Add regression coverage for popup confirmation and shared updates.
+
+## [0.7.1] - 2026-10-09
+
+### Fixed
+
+- Keep preset tiles in their catalogue/favorite order when selected, while still
+  remembering the active highlight across editor reopenings.
+- Center favorite glyphs within their compact badges; keep every star visible.
+- Preserve wheel marker placement through rounded RGB feedback and confirmed
+  preset gamut conversion. Live RGB swatches still update, and changed live
+  palettes replace the local placement. A second editor adopts new preset
+  positions correctly when confirmation arrives before the state echo.
+- Replace independent radial connector bows with a continuous, bounded cubic
+  path and thinner strokes. Handle lengths adapt to neighboring distances and
+  remain inside the wheel, including coincident and opposite points.
+
+## [0.7.0] - 2026-10-09
+
+### Added
+
+- Remember the confirmed active preset per light within the authenticated browser
+  session when reopening editors/popups; show it before favorites. Live xy, mode,
+  and appearance still determine whether its active highlight is valid.
+- Mouse dragging and mouse-wheel browsing for the preset carousel, alongside
+  native touch/trackpad scrolling and keyboard controls.
+
+### Fixed
+
+- Keep gradient wheel markers after a delayed, rounded native first-color echo;
+  other whole-light XY changes and temperature still suppress retained gradients.
+- Reduce favorite badges to 24 pixels with 16-pixel icons while preserving
+  44-pixel click/touch targets. Dragging across a star never toggles a favorite.
+
+## [0.6.0] - 2026-10-09
+
+### Added
+
+- Collapsible gradient preset carousel with 3½ previews, touch swiping, favorite
+  ordering, and a full library view in popup, standalone, and embedded editors.
+- Twelve built-in palettes with two through five colors, plus shared custom
+  presets captured from exact live Hue xy points and mode. Save new, update,
+  rename, and delete presets; creators and administrators control editing.
+- Personal favorites and remembered expansion preferences synchronized through
+  authenticated Home Assistant WebSockets and versioned local storage. Visual
+  configuration offers remembered, always-collapsed, and always-expanded defaults.
+- `apply_preset` action applies compatible presets across selected native Hue
+  lights while retaining brightness, checking every target's permissions before
+  writes, preserving service context, and reporting applied/skipped targets.
+
+### Internal
+
+- Serialized, revision-checked library writes; shared frontend subscriptions;
+  exact xy application without RGB round trips or mode/capacity substitution.
+- Backend, unit, and browser regression coverage for persistence, permissions,
+  private preferences, lifecycle, carousel gestures, and preset management.
+
 ## [0.5.0] - 2026-10-08
 
 ### Added

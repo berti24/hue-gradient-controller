@@ -17,6 +17,7 @@ export const editorStyles = css`
     line-height:var(--hgc-line-height,1.4);
   }
   * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
   .editor {
     position:relative; isolation:isolate;
     background:var(--_surface);
@@ -52,8 +53,8 @@ export const editorStyles = css`
   @media (any-pointer:coarse) { .touch-hint { display:block; } }
   canvas { display:block; width:100%; height:100%; border-radius:50%; }
   svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
-  .connector-shadow { stroke:var(--hgc-connector-shadow,rgba(0,0,0,.55)); stroke-width:var(--hgc-connector-shadow-width,1.7px); fill:none; }
-  .connector { stroke:var(--hgc-connector-color,rgba(255,255,255,.95)); stroke-width:var(--hgc-connector-width,.75px); fill:none; }
+  .connector-shadow { stroke:var(--hgc-connector-shadow,rgba(0,0,0,.42)); stroke-width:var(--hgc-connector-shadow-width,1.2px); stroke-linecap:round; stroke-linejoin:round; fill:none; }
+  .connector { stroke:var(--hgc-connector-color,rgba(255,255,255,.95)); stroke-width:var(--hgc-connector-width,.5px); stroke-linecap:round; stroke-linejoin:round; fill:none; }
   .point { position:absolute; width:var(--_point-size); height:var(--_point-size); min-height:var(--_point-size); transform:translate(-50%,-50%); border:var(--hgc-point-border-width,2px) solid var(--hgc-point-border-color,white); border-radius:50%; padding:0; background:var(--point-color); color:var(--point-text); box-shadow:var(--hgc-point-shadow,0 1px 5px rgba(0,0,0,.4)); font-size:var(--hgc-point-font-size,14px); }
   .point.selected { outline:var(--hgc-selected-width,2px) solid var(--hgc-selected-color,var(--primary-color)); outline-offset:var(--hgc-selected-offset,2px); }
   .point.outside { border-style:dashed; }

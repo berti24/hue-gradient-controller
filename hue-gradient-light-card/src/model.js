@@ -21,6 +21,8 @@ export const available = (state) => Boolean(state && !["unavailable", "unknown"]
 export function normalizeConfig(input, editor = false) {
   if (!input || !/^light\.[a-z0-9_]+$/.test(input.entity ?? "")) throw Error("Choose a light entity");
   const config = { ...input };
+  config.presets_expansion ??= "remember";
+  if(!["remember","collapsed","expanded"].includes(config.presets_expansion))throw Error("presets_expansion must be remember, collapsed, or expanded");
   for (const [key,value] of [["protect_when_off",false],["icon_gradient_background",false],...editor?[]:[["color_background",true],["show_brightness_slider",false]]]) {
     if (config[key] != null && typeof config[key] !== "boolean") throw Error(`${key} must be true or false`);
     config[key] ??= value;
@@ -145,7 +147,24 @@ export function gradientDisplay(attrs) {
 // Use native XY, not derived RGB/HS, to detect solid-color changes. A changed
 // gradient mode is also a palette update, even when its points stay identical.
 // No frontend polling or bridge access.
+// Native HA display XY can be rounded more coarsely than bridge gradient XY.
+// Compare display feedback only; exact snapshot/write coordinates stay untouched.
+export function sameXy(left, right) {
+  return Array.isArray(left) && Array.isArray(right) && left.length === 2 && right.length === 2 &&
+    left.every((value, index) => Number.isFinite(value) && Number.isFinite(right[index]) && Math.abs(value-right[index]) <= .00055);
+}
+export function sameXyPoints(left, right) {
+  return Array.isArray(left) && Array.isArray(right) && left.length === right.length &&
+    left.every((point, index) => sameXy(point, right[index]));
+}
 export class AppearanceTracker {
+  confirmGradient(state, applied) {
+    const attrs=state?.attributes;
+    if(!available(state) || attrs?.color_mode==="color_temp" || attrs?.gradient_mode!==applied.mode ||
+      !sameXyPoints(attrs?.gradient_colors_xy,applied.colors_xy))return false;
+    this.solid=false;
+    return this.observe(state);
+  }
   observe(state) {
     const attrs = state?.attributes ?? {};
     if (!available(state)) return !this.solid && gradientDisplay(attrs).length > 1;
@@ -153,7 +172,8 @@ export class AppearanceTracker {
     const native = JSON.stringify([attrs.color_mode, attrs.xy_color]);
     if (this.points !== undefined) {
       if (points !== this.points || attrs.gradient_mode !== this.mode) this.solid = false;
-      else if (state.state === "on" && this.native !== undefined && native !== this.native) this.solid = true;
+      else if (state.state === "on" && this.native !== undefined && native !== this.native &&
+        !sameXy(attrs.xy_color, attrs.gradient_colors_xy?.[0])) this.solid = true;
     }
     this.points = points;
     this.mode = attrs.gradient_mode;

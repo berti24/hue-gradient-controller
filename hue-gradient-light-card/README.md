@@ -15,7 +15,7 @@ Ordinary light power, brightness, RGB and temperature use native light services.
    Python integration.
 3. Enable Advanced mode in your profile. Open **Settings → Dashboards →
    three-dot menu → Resources → Add resource**. Enter
-   `/local/hue-gradient-light-card.js?v=0.4.2` and choose **JavaScript module**.
+   `/local/hue-gradient-light-card.js?v=0.7.2` and choose **JavaScript module**.
    Use the installed release version when updating in the future.
 4. Hard-refresh the browser/companion app frontend. Add a card and search for
    **Hue Gradient Light** or **Hue Gradient Editor**.
@@ -34,7 +34,7 @@ For YAML-managed dashboard resources:
 ```yaml
 lovelace:
   resources:
-    - url: /local/hue-gradient-light-card.js?v=0.4.2
+    - url: /local/hue-gradient-light-card.js?v=0.7.2
       type: module
 ```
 
@@ -132,6 +132,51 @@ Derived RGB/HS updates do not suppress the palette, including in Pixelated mode.
 Hue/HA expose no unambiguous active-gradient flag for a fresh frontend session
 with stale unchanged stops. That initial ambiguity cannot be resolved from the
 supplied state alone.
+
+## Gradient presets
+
+Selected native Hue gradient lights gain **Presets** above the wheel. The chevron
+opens a carousel showing three complete previews and half the next preview. Swipe,
+drag with a mouse, use the mouse wheel or trackpad, tab through presets, or use
+Previous/Next buttons to browse. Tapping
+a preview applies its colors and mode immediately, preserving brightness and the
+current view. Swiping and starring never change the light.
+
+**See all** opens the full preset grid inside the same editor; **Back to editor**
+restores its previous carousel position. The confirmed active preset stays selected
+when reopening an editor during the same authenticated browser session. Selection
+keeps catalogue/favorite ordering and carousel position stable. Outside color/mode
+changes clear the highlight when the reported palette no longer matches. Reloading
+the browser starts a new session. Star a preset to show it before nonfavorites.
+The built-in catalogue includes Ocean, Ember, Candlelight, Aurora, Forest, Rose,
+Sunset, Twilight, Ice, Prism, Lagoon, and Neon, with two through five colors.
+Presets needing more points or an unsupported mode remain visible with a reason.
+
+**Save current** opens a name form and captures confirmed live xy points and mode,
+without brightness or power. Pending/unconfirmed edits must settle first. Use
+**Save new**, or **Update preset** after applying an editable custom preset. Library
+rows expose Rename/Delete for creators and admins; deletion asks for confirmation
+and removes that preset's favorites for everyone. Built-ins cannot be changed.
+New presets are not automatically favorited.
+
+The shared library and personal favorites/preferences are persisted locally by
+Home Assistant and sync across cards and devices with authenticated push updates.
+The preset feature requires the Python integration; ordinary frontend-only light
+controls remain independent. Presets respect **Protect while off**; browsing and
+favoriting remain available while the light is off.
+
+The visual **Preset opening state** setting is also available in YAML:
+
+```yaml
+type: custom:hue-gradient-light-card
+entity: light.living_room_strip
+presets_expansion: remember
+```
+
+`remember` is the default, initially collapsed, then uses the user's synchronized
+preference. `collapsed` and `expanded` set the opening state on each new editor;
+manual toggles in these modes affect only that editor session. The option also
+works with `custom:hue-gradient-editor`, including embedded editors.
 
 ## Compact popup controls
 

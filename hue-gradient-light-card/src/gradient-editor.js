@@ -1,11 +1,13 @@
 import { LitElement, html, svg, nothing } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import { styleMap } from "lit/directives/style-map.js";
-import { normalizeConfig, capabilities, AppearanceTracker, currentColors, validSnapshot, nextColor, colorLayer } from "./model.js";
+import { normalizeConfig, capabilities, AppearanceTracker, currentColors, validSnapshot, nextColor, colorLayer, sameXy } from "./model.js";
 import { discPoint, paletteColor, markerPosition, connectorPath, separateMarkers } from "./palette.js";
 import { LiveWriter, serialize } from "./writes.js";
 import { editorStyles } from "./editor-styles.js";
+import { rememberPreset, activePreset } from "./presets.js";
 import "./mode-select.js";
+import "./preset-browser.js";
 
 let pointId = 0;
 export class HueGradientEditor extends LitElement {
@@ -15,6 +17,7 @@ export class HueGradientEditor extends LitElement {
     _error: { state: true }, _snapshot: { state: true }, _menu: { state: true },
     _busyAction: { state: true }, _transition: { state: true }, _hass: { state: true },
     _touchReady: { state: true }, _powerIntent: { state: true },
+    _presetLibrary: { state:true }, _presetOrigin: { state:true }, _presetApplied: { state:true },
   };
   constructor() {
     super(); this._points = []; this._selected = 0; this._whites = false;
@@ -30,6 +33,7 @@ export class HueGradientEditor extends LitElement {
       this._clearTouch(); this._drag = undefined; this._powerIntent = undefined; this._reportedColors = undefined;
       this._writer?.dispose(); this._writer = undefined; this._tracker = new AppearanceTracker();
       this._snapshot = undefined; this._points = []; this._lastState = undefined;
+      this._presetLibrary=false;this._presetOrigin=undefined;this._presetApplied=undefined;
     }
     this._config = config;
     if (!config.protect_when_off) this._powerIntent = undefined;
@@ -60,6 +64,21 @@ export class HueGradientEditor extends LitElement {
       if (!caps.available) throw Error("Light is unavailable");
       if (this.offProtected && command.key !== "power" && command.service !== "turn_off") return;
       if (command.domain === "hue_gradient_controller" && !caps.gradient) throw Error("Gradient control is no longer available for this light");
+      if(command.service==="apply_preset") {
+        return this.hass.callWS({type:"call_service",domain:command.domain,service:command.service,
+          service_data:command.data,target:{entity_id:entity},return_response:true}).then(result=>{
+          const applied=result?.response?.applied?.[entity];
+          if(!applied)throw Error(`Preset could not apply: ${result?.response?.skipped?.[entity]??"no confirmation"}`);
+          rememberPreset(this.hass,entity,{id:command.data.preset_id,...applied});
+          if(this._config.entity===entity) {
+            if(this._tracker.confirmGradient(this.state,applied))this._gradientActive=true;
+            this.gradientConfirmed?.(applied);
+          }
+          if(!this.isConnected||this._config.entity!==entity)return;
+          this._presetOrigin=command.data.preset_id;
+          this._presetApplied={id:command.data.preset_id,...applied};
+        });
+      }
       return this.hass.callService(command.domain, command.service, command.data, { entity_id: entity });
     }, (error) => {
       if (error) {
@@ -81,6 +100,7 @@ export class HueGradientEditor extends LitElement {
   }
   _sync() {
     if (!this._config || !this.hass) return;
+    if(!this.caps.gradient)this._presetLibrary=false;
     this._ensureWriter();
     const state = this.state;
     if (state === this._lastState) return;
@@ -109,11 +129,18 @@ export class HueGradientEditor extends LitElement {
     const colors = currentColors(this.state, this.caps.gradient && this._gradientActive);
     if (colors.length) this._reportedColors = colors;
     const actual = colors.length ? colors : this.offProtected && this._reportedColors?.length ? this._reportedColors : [[255,255,255]];
+    const xy=this.caps.gradient&&this._gradientActive?this.state?.attributes.gradient_colors_xy:undefined;
+    const confirmedPreset=activePreset(this.hass,this._config.entity,this._gradientActive);
     this._points = actual.map((rgb, index) => {
       const previous=this._points[index];
-      const same=previous?.rgb.every((n,i)=>n===rgb[i]);
+      const anchor=previous?.placementRgb??previous?.rgb;
+      // Keep placement separate from live RGB. Hue's display conversion must
+      // update swatches without re-inverting or re-spacing an unchanged color.
+      const stable=previous?.picker&&(sameXy(previous.reportedXy,xy?.[index])||
+        (confirmedPreset&&previous.previewPresetId===confirmedPreset.id)||anchor?.every((n,i)=>Math.abs(n-rgb[i])<=3));
       return {id:previous?.id ?? ++pointId,rgb,
-        picker:same?previous?.picker:undefined,preferred:previous?.picker};
+        picker:stable?previous.picker:undefined,preferred:previous?.picker,
+        placementRgb:stable?anchor:rgb,reportedXy:xy?.[index]?[...xy[index]]:undefined};
     });
     this._placePoints();
     this._selected = Math.min(this._selected, this._points.length - 1);
@@ -154,6 +181,9 @@ export class HueGradientEditor extends LitElement {
   _colorCommand(immediate = false) {
     const caps = this.caps;
     if (!this.canEdit || !caps.color) return;
+    this._presetApplied=undefined;
+    rememberPreset(this.hass,this._config.entity,undefined);
+    this._points=this._points.map(point=>({...point,previewPresetId:undefined}));
     const data = caps.transition || caps.gradient ? { transition: this._transition } : {};
     if (caps.gradient) {
       if (this._points.length > caps.capacity) { this._error = "The reported palette exceeds this light's capacity"; return; }
@@ -167,6 +197,19 @@ export class HueGradientEditor extends LitElement {
       data.rgb_color = this.points[0];
       this._queue({ domain: "light", service: "turn_on", data }, immediate);
     }
+  }
+  _applyPreset(preset) {
+    const caps=this.caps;
+    if(!this.canEdit||!caps.gradient||preset.preview_rgb.length>caps.capacity||!caps.modes.includes(preset.mode))return;
+    this._clearTouch();this._drag=undefined;
+    this._points=preset.preview_rgb.map(rgb=>({id:++pointId,rgb:[...rgb],previewPresetId:preset.id}));
+    this._placePoints();this._selected=0;this._mode=preset.mode;this._presetApplied=undefined;
+    rememberPreset(this.hass,this._config.entity,undefined);
+    this._queue({domain:"hue_gradient_controller",service:"apply_preset",key:"color",
+      data:{preset_id:preset.id,transition:this._transition,turn_on:true}},true);
+  }
+  get selectedPresetId() {
+    return activePreset(this.hass,this._config?.entity,this._gradientActive)?.id;
   }
   _add() {
     if (!this.canEdit || !this.caps.gradient || this._points.length >= this.caps.capacity) return;
@@ -205,8 +248,9 @@ export class HueGradientEditor extends LitElement {
   _moveColor(event) {
     if (!this.canEdit) return;
     const [x,y] = this._position(event);
+    const rgb=paletteColor(x,y,this._whites);
     this._points = this._points.map((point, i) => i === this._selected ? { ...point,
-      rgb:paletteColor(x,y,this._whites),picker:{x,y,whites:this._whites,outside:false} } : point);
+      rgb,placementRgb:rgb,reportedXy:undefined,picker:{x,y,whites:this._whites,outside:false} } : point);
     this._colorCommand();
   }
   _pointerUp(event) {
@@ -284,8 +328,9 @@ export class HueGradientEditor extends LitElement {
       event.preventDefault(); this._selected = index;
       const p = this._points[index].picker;
       const [x,y]=discPoint(p.x+movement[0],p.y+movement[1]);
+      const rgb=paletteColor(x,y,this._whites);
       this._points = this._points.map((point, i) => i === index ? { ...point,
-        rgb:paletteColor(x,y,this._whites),picker:{x,y,whites:this._whites,outside:false} } : point);
+        rgb,placementRgb:rgb,reportedXy:undefined,picker:{x,y,whites:this._whites,outside:false} } : point);
       this._colorCommand();
     } else if (["Delete", "Backspace"].includes(event.key)) {
       event.preventDefault(); this._remove(index);
@@ -399,11 +444,17 @@ export class HueGradientEditor extends LitElement {
           ${this._overflow()}
           ${this.popup && !this._config.embedded ? html`<button class="icon" aria-label="Close gradient editor" @click=${() => this.dispatchEvent(new CustomEvent("hgc-close", { bubbles:true,composed:true }))}><ha-icon icon="mdi:close"></ha-icon></button>` : nothing}
         </header>
+      ${caps.gradient ? html`<hgc-preset-browser .hass=${this.hass} .entity=${this._config.entity} .caps=${caps}
+        .canApply=${this.canEdit} .canSave=${this.canEdit&&this._gradientActive&&this._points.length>1&&!this._optimistic&&!this._writer?.busy}
+        .expansion=${this._config.presets_expansion} .selectedId=${this.selectedPresetId} .editingId=${this._presetOrigin??this.selectedPresetId}
+        @preset-apply=${e=>this._applyPreset(e.detail.preset)}
+        @preset-view-changed=${e=>{this._presetLibrary=e.detail.library;}}></hgc-preset-browser>` : nothing}
       ${!caps.available ? html`<p class="status" role="status">${this.state ? "Light unavailable" : `Entity ${this._config.entity} not found`}</p>` : nothing}
       ${caps.available && this.offProtected ? html`<div class="off-status" role="status">
         <span>${this._powerIntent ? `Turning ${this._powerIntent === "off" ? "off" : "on"}… Editing locked.` : "Light is off. Turn on to edit."}</span>
         <button ?disabled=${powerDisabled} @click=${this._power}><ha-icon icon="mdi:power"></ha-icon>Turn on</button>
       </div>` : nothing}
+      <div ?hidden=${this._presetLibrary&&caps.gradient}>
       ${caps.color ? html`
         <div class=${`wheel${this.offProtected ? " off" : ""}${this._touchReady ? " touch-ready" : ""}`} role="group" aria-disabled=${String(disabled)} aria-label=${this._whites ? "White-tone color palette" : "Hue and saturation color wheel"}
           @pointerdown=${(e) => this._pointerDown(e)} @pointermove=${this._pointerMove} @pointerup=${this._pointerUp}
@@ -450,6 +501,7 @@ export class HueGradientEditor extends LitElement {
       ${caps.gradient ? html`<hgc-mode-select .modes=${caps.modes} .value=${this._mode ?? ""}
         .disabled=${disabled || this._points.length<2}
         @mode-changed=${(e)=> {if(this.canEdit){this._mode=e.detail.value;this._colorCommand(true);}}}></hgc-mode-select>` : nothing}
+      </div>
       ${this._error ? html`<p role="alert">${this._error}</p>` : nothing}
     </section>`;
   }

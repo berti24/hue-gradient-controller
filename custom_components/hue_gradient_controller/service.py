@@ -40,7 +40,7 @@ from homeassistant.core import (
     SupportsResponse,
     callback,
 )
-from homeassistant.exceptions import Unauthorized, UnknownUser
+from homeassistant.exceptions import ServiceValidationError, Unauthorized, UnknownUser
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import target as target_helpers
 from homeassistant.helpers.entity_component import DATA_INSTANCES
@@ -149,9 +149,7 @@ def _validate_snapshot(value: Any) -> dict[str, GradientEntitySnapshot]:
     if not isinstance(value, Mapping):
         raise vol.Invalid("snapshot must be an object")
     if value.get("version") != GRADIENT_SNAPSHOT_VERSION:
-        raise vol.Invalid(
-            f"snapshot version must be {GRADIENT_SNAPSHOT_VERSION}"
-        )
+        raise vol.Invalid(f"snapshot version must be {GRADIENT_SNAPSHOT_VERSION}")
     entities = value.get("entities")
     if not isinstance(entities, Mapping):
         raise vol.Invalid("snapshot entities must be an object")
@@ -228,6 +226,16 @@ SET_GRADIENT_SCHEMA = cv.make_entity_service_schema(
 )
 
 SNAPSHOT_GRADIENT_SCHEMA = cv.make_entity_service_schema({})
+
+APPLY_PRESET_SCHEMA = cv.make_entity_service_schema(
+    {
+        vol.Required("preset_id"): cv.string,
+        vol.Optional(ATTR_TURN_ON, default=True): cv.boolean,
+        vol.Optional(ATTR_TRANSITION): vol.All(
+            vol.Coerce(float), vol.Range(min=0, max=6000)
+        ),
+    }
+)
 
 RESTORE_GRADIENT_SCHEMA = vol.Schema(
     {
@@ -379,8 +387,7 @@ async def _async_snapshot_gradient(call: ServiceCall) -> ServiceResponse:
         dimming = entity.resource.dimming
         entities[entity_id] = {
             "colors_xy": [
-                [point.color.xy.x, point.color.xy.y]
-                for point in gradient.points
+                [point.color.xy.x, point.color.xy.y] for point in gradient.points
             ],
             "mode": gradient.mode.value,
             "on": entity.resource.on.on,
@@ -550,9 +557,93 @@ async def _async_set_gradient(call: ServiceCall) -> None:
             )
 
 
+async def _async_apply_preset(call: ServiceCall) -> ServiceResponse:
+    """Apply a portable recipe without replaying brightness or snapshot power."""
+    # Local import avoids a cycle: the library reuses our color validators.
+    from .presets import DATA_PRESETS, PresetError  # noqa: PLC0415
+
+    library = call.hass.data.get(DATA_PRESETS)
+    if library is None:
+        raise ServiceValidationError("Preset library is not loaded")
+    try:
+        recipe = library.get(call.data["preset_id"])
+    except PresetError as err:
+        raise ServiceValidationError(str(err)) from err
+    entity_ids = _selected_entity_ids(call.hass, call)
+    await _async_check_authorization(call.hass, call, entity_ids)
+    component = call.hass.data.get(DATA_INSTANCES, {}).get(LIGHT_DOMAIN)
+    applied, skipped = {}, {}
+    for entity_id in sorted(entity_ids):
+        entity = component.get_entity(entity_id) if component else None
+        reason = _preset_incompatibility(call.hass, entity, recipe)
+        if reason:
+            skipped[entity_id] = reason
+            _LOGGER.warning("Skipping %s: %s", entity_id, reason)
+            continue
+        try:
+            points = (
+                _gradient_points(recipe["preview_rgb"], _ha_gamut(entity))
+                if recipe["builtin"]
+                else [
+                    GradientPoint(color=ColorFeatureBase(xy=ColorPoint(x, y)))
+                    for x, y in recipe["colors_xy"]
+                ]
+            )
+            update = LightPut(
+                gradient=GradientFeaturePut(
+                    points=points, mode=GradientMode(recipe["mode"])
+                )
+            )
+            if call.data[ATTR_TURN_ON]:
+                update.on = OnFeature(on=True)
+            if (transition := call.data.get(ATTR_TRANSITION)) is not None:
+                update.dynamics = DynamicsFeaturePut(
+                    duration=normalize_hue_transition(transition)
+                )
+            entity.async_set_context(call.context)
+            await entity.bridge.async_request_call(
+                entity.controller.update, entity.resource.id, update
+            )
+            applied[entity_id] = {
+                "colors_xy": [[point.color.xy.x, point.color.xy.y] for point in points],
+                "mode": recipe["mode"],
+            }
+        except Exception as err:
+            skipped[entity_id] = "hue_rejected"
+            _LOGGER.warning(
+                "Skipping %s after Hue rejected the preset: %s", entity_id, err
+            )
+    return {"applied": applied, "skipped": skipped}
+
+
+def _preset_incompatibility(hass, entity, recipe) -> str | None:  # noqa: PLR0911
+    """Check per-target eligibility without changing the recipe."""
+    if not isinstance(entity, HueLight):
+        return "not_individual_native_hue_light"
+    if not hue_light_is_selected(hass, entity):
+        return "bridge_not_selected"
+    if not entity.available:
+        return "unavailable"
+    gradient = entity.resource.gradient
+    if gradient is None:
+        return "not_gradient_capable"
+    if len(recipe["preview_rgb"]) > gradient.points_capable:
+        return "point_capacity_exceeded"
+    if GradientMode(recipe["mode"]) not in gradient.mode_values:
+        return "unsupported_mode"
+    return None
+
+
 @callback
 def async_register_gradient_services(hass: HomeAssistant) -> None:
     """Register gradient write, snapshot, and restore actions."""
+    hass.services.async_register(
+        DOMAIN,
+        "apply_preset",
+        _async_apply_preset,
+        APPLY_PRESET_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_GRADIENT,
@@ -578,6 +669,7 @@ def async_register_gradient_services(hass: HomeAssistant) -> None:
 def async_unregister_gradient_services(hass: HomeAssistant) -> None:
     """Remove all gradient actions."""
     for service in (
+        "apply_preset",
         SERVICE_SET_GRADIENT,
         SERVICE_SNAPSHOT_GRADIENT,
         SERVICE_RESTORE_GRADIENT,

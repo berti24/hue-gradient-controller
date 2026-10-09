@@ -74,6 +74,37 @@ fresh full bridge state so changes missed while disconnected are recovered.
 These attributes represent the latest state reported by the bridge; they are
 not per-frame telemetry for Hue Entertainment streaming.
 
+## Gradient presets
+
+The optional dashboard editor includes a collapsible, swipeable preset carousel
+and a **See all** library view. Twelve built-in palettes contain two through five
+colors. **Save current** captures exact live Hue xy points and mode; custom presets
+are shared across Home Assistant devices and cards. Favorites are personal, appear
+first, and are not added automatically when saving. See the
+[card documentation](hue-gradient-light-card/README.md#gradient-presets) for controls.
+
+Creators and administrators can update, rename, and delete custom presets.
+Presets preserve brightness and can be reused on other selected native gradient
+lights with sufficient capacity and support for their mode. Exact xy values are
+sent unchanged, though different light hardware may produce different colors.
+This is a color recipe, separate from the entity-bound snapshot/restore actions.
+
+```yaml
+action: hue_gradient_controller.apply_preset
+target:
+  entity_id: light.hue_gradient_floor
+data:
+  preset_id: builtin:sunset
+  transition: 0.5
+  turn_on: true
+```
+
+`turn_on` defaults to true. Omit brightness: this action never changes it. Custom
+preset IDs are returned when saving and appear in authenticated library messages.
+Optional action response data contains `applied` (including expected xy points
+and mode) and target-specific `skipped` reasons. Normal target authorization,
+bridge selection, sequential writes, and best-effort behavior apply.
+
 ## Set a gradient
 
 The visual action editor provides repeatable RGB color-picker rows. In YAML,

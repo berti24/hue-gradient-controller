@@ -42,5 +42,25 @@
       "title": "The Hue bridge selection contains unavailable entries"
     }
   },
-  "title": "Philips Hue Gradient Controller"
+  "title": "Philips Hue Gradient Controller",
+  "services": {
+    "apply_preset": {
+      "name": "Apply preset",
+      "description": "Apply a stored gradient recipe without changing brightness.",
+      "fields": {
+        "preset_id": {
+          "name": "Preset ID",
+          "description": "A built-in or saved custom preset ID."
+        },
+        "turn_on": {
+          "name": "Turn on",
+          "description": "Turn on the light in the same Hue update."
+        },
+        "transition": {
+          "name": "Transition",
+          "description": "Transition duration in seconds."
+        }
+      }
+    }
+  }
 }

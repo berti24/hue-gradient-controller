@@ -6,7 +6,8 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "hue"
+    "hue",
+    "websocket_api"
   ],
   "documentation": "https://github.com/berti24/hue-gradient-controller",
   "integration_type": "service",
@@ -17,5 +18,5 @@
   ],
   "requirements": [],
   "single_config_entry": true,
-  "version": "0.5.0"
+  "version": "0.7.2"
 }
