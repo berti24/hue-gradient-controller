@@ -46,7 +46,7 @@ as described above. Then, for either installation method:
    Python integration.
 2. Enable Advanced mode in your profile. Open **Settings → Dashboards →
    three-dot menu → Resources → Add resource**. Enter
-   `/local/hue-gradient-light-card.js?v=0.7.4` and choose **JavaScript module**.
+   `/local/hue-gradient-light-card.js?v=0.7.5` and choose **JavaScript module**.
    Use the installed release version when updating in the future.
 3. Hard-refresh the browser/companion app frontend. Add a card and search for
    **Hue Gradient Light** or **Hue Gradient Editor**.
@@ -65,7 +65,7 @@ For YAML-managed dashboard resources:
 ```yaml
 lovelace:
   resources:
-    - url: /local/hue-gradient-light-card.js?v=0.7.4
+    - url: /local/hue-gradient-light-card.js?v=0.7.5
       type: module
 ```
 
@@ -83,8 +83,8 @@ lovelace:
   recipes. Favorites and opening preferences sync across authenticated devices.
 - **Snapshot and restore:** keep an exact gradient snapshot through the editor's
   menu, including xy points, mode, power and brightness.
-- **Flexible placement:** use the compact card-owned popup or place the standalone
-  editor on a dashboard or inside a Bubble popup.
+- **Flexible placement:** use the responsive card-owned popup or place the
+  standalone editor on a dashboard or inside a Bubble popup.
 - **Touch and keyboard controls:** hold to arm touch editing, use arrow keys to
   move points, and enable Protect while off to prevent accidental changes.
 
@@ -338,7 +338,7 @@ authority. Disconnect cancels unsent work, not service calls already accepted.
 
 The editor has its own visual editor with Entity, Name, Icon, Protect while off,
 Embedded and Card background. The
-`embedded` boolean (default false) removes the popup handle and close control and
+`embedded` boolean (default false) omits the popup close control and
 inherits the host surface. The light icon, circular icon background, title,
 power control and overflow remain visible. The editor also exposes
 `icon_gradient_background` (default false) in YAML and its visual editor.
@@ -349,6 +349,13 @@ Enable **Card background** (`card_background: true`) to give an embedded editor
 its own theme surface, border, shadow and padding on a dashboard. Set it to
 `false` for a transparent editor. When omitted, it defaults to `true` for a
 standalone editor and `false` when `embedded: true`, preserving existing layouts.
+
+Card-owned popups default to 560px wide on desktop (viewports at least 768px)
+and keep their 352px default on mobile, always fitting within the viewport with
+at least 24px of total horizontal clearance. Standalone dashboard editors fill
+the width assigned by the dashboard, including Sections column settings. Neither
+placement has a decorative grab handle; the light title and controls remain at
+the top.
 
 ```yaml
 type: custom:hue-gradient-editor
@@ -418,7 +425,7 @@ in HA themes (omit the leading `--` in theme YAML):
 | `--hgc-shadow` | HA card shadow |
 | `--hgc-popup-radius` | Bubble popup radius → HA card radius → 28px |
 | `--hgc-control-radius` | Bubble button radius → Bubble radius → HA large radius → 24px |
-| `--hgc-popup-width`, `--hgc-wheel-size` | 352px, 300px |
+| `--hgc-popup-width`, `--hgc-wheel-size` | 560px desktop / 352px mobile (popup only), 300px |
 | `--hgc-padding`, `--hgc-spacing` | 16px |
 | `--hgc-embedded-padding`, `--hgc-embedded-tools-margin` | 0px, 4px |
 | `--hgc-font-family`, `--hgc-font-size`, `--hgc-line-height` | HA font, 14px, 1.4 |
@@ -443,7 +450,6 @@ in HA themes (omit the leading `--` in theme YAML):
 | `--hgc-mode-option-active` | HA card background |
 | `--hgc-focus-color`, `--hgc-focus-width`, `--hgc-focus-offset` | HA primary, 3px, 3px |
 | `--hgc-disabled-opacity`, `--hgc-error-color` | .45, HA error |
-| `--hgc-handle-width`, `--hgc-handle-height`, `--hgc-handle-opacity` | 40px, 4px, .4 |
 | `--hgc-menu-gap`, `--hgc-menu-padding`, `--hgc-menu-summary-padding` | 8px, 8px, 4px |
 | `--hgc-menu-top` | 70px |
 | `--hgc-transition-width`, `--hgc-input-radius`, `--hgc-input-padding` | 80px, 8px, 6px |

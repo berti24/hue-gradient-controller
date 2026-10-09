@@ -3,6 +3,7 @@ import { css } from "lit";
 export const editorStyles = css`
   :host {
     display:block;
+    min-width:0;
     color:var(--hgc-text-color,var(--primary-text-color));
     --_surface:var(--hgc-surface,var(--ha-card-background,var(--card-background-color)));
     --_control:var(--hgc-control-surface,var(--secondary-background-color));
@@ -28,7 +29,6 @@ export const editorStyles = css`
   }
   .editor.no-card-background { border:0; background:transparent; box-shadow:none; }
   .editor.embedded.no-card-background { padding:var(--hgc-embedded-padding,0px); }
-  .handle { width:var(--hgc-handle-width,40px); height:var(--hgc-handle-height,4px); border-radius:var(--_radius); background:var(--_muted); opacity:var(--hgc-handle-opacity,.4); margin:0 auto var(--_gap); }
   header { display:flex; align-items:center; gap:var(--_gap); margin-bottom:var(--_gap); }
   h2 { font-size:var(--hgc-title-size,var(--ha-font-size-l,16px)); font-weight:var(--hgc-title-weight,500); margin:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .header-icon { display:grid; place-items:center; width:var(--hgc-header-icon-size,40px); height:var(--hgc-header-icon-size,40px); border-radius:50%; background:var(--hgc-icon-surface,var(--_control)); }

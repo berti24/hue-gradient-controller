@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.5] - 2026-10-10
+
+### Fixed
+
+- Remove the decorative grab handle and its extra top spacing from popup and
+  dashboard editors, keeping the light controls and popup close button.
+- Widen card-owned editor popups to 560px on desktop (viewports at least 768px).
+  Keep the 352px mobile default and viewport gutters; dashboard editors continue
+  to follow their assigned section width. Theme popup width overrides still apply.
+- Add browser coverage for responsive popup sizing, dismissal and dashboard
+  section constraints, derive the displayed-version assertion from release
+  metadata, and rebuild the bundled dashboard resource.
+
 ## [0.7.4] - 2026-10-09
 
 ### Changed

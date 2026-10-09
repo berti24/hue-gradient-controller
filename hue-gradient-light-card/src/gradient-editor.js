@@ -438,7 +438,6 @@ export class HueGradientEditor extends LitElement {
       @focusin=${e=>{if(this._menu&&!e.composedPath().some(node=>node.localName==="details"))this._closeMenu();}}
       @keydown=${(e)=>{if(this._menu&&e.key==="Escape"){e.preventDefault();e.stopPropagation();this._closeMenu();this.renderRoot.querySelector("summary")?.focus();}}}>
       ${this._menu ? html`<div class="menu-backdrop" aria-hidden="true" @click=${this._closeMenu} @pointerdown=${(e)=>e.stopPropagation()}></div>` : nothing}
-      ${!this._config.embedded ? html`<div class="handle" aria-hidden="true"></div>` : nothing}
         <header><button class=${`header-icon icon${on ? " on" : ""}`} style=${styleMap({"--hgc-power-color":powerRgb?`rgb(${powerRgb.join(",")})`:undefined,"--hgc-icon-gradient":iconBackground})} aria-label=${on ? "Turn off" : "Turn on"} ?disabled=${powerDisabled} @click=${this._power}>
           <ha-icon .icon=${this.icon}></ha-icon></button><h2>${this.name}</h2>
           ${this._overflow()}

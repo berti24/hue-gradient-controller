@@ -252,8 +252,14 @@ export class HueGradientLightCard extends HTMLElement {
     // rendering. It lives under the card, so dynamic HA theme variables inherit.
     const dialog=document.createElement("dialog");
     dialog.setAttribute("aria-label",`${this._config.name||this.hass.states[this._config.entity]?.attributes.friendly_name||this._config.entity} light controls`);
-    dialog.style.cssText="border:0;padding:0;background:transparent;color:var(--primary-text-color);width:min(var(--hgc-popup-width,352px),calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;border-radius:var(--hgc-popup-radius,var(--bubble-pop-up-border-radius,var(--ha-card-border-radius,28px)));";
-    const style=document.createElement("style");style.textContent="dialog::backdrop{background:var(--hgc-backdrop-color,rgba(0,0,0,.5))}";dialog.append(style);
+    dialog.style.cssText="border:0;padding:0;background:transparent;color:var(--primary-text-color);max-height:calc(100dvh - 24px);overflow:auto;border-radius:var(--hgc-popup-radius,var(--bubble-pop-up-border-radius,var(--ha-card-border-radius,28px)));";
+    const style=document.createElement("style");
+    style.textContent=`
+      dialog{width:min(var(--hgc-popup-width,352px),calc(100vw - 24px))}
+      @media (min-width:768px){dialog{width:min(var(--hgc-popup-width,560px),calc(100vw - 24px))}}
+      dialog::backdrop{background:var(--hgc-backdrop-color,rgba(0,0,0,.5))}
+    `;
+    dialog.append(style);
     const editor=document.createElement("hue-gradient-editor");editor.popup=true;
     editor.appearanceSource=()=>this._gradientActive;
     const entity=this._config.entity;
