@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4] - 2026-10-09
+
+### Changed
+
+- Replace the README hero's decorative color ring with a preview of the actual
+  popup editor, using a screenshot captured from the card's browser fixture.
+
+## [0.7.3] - 2026-10-09
+
+### Changed
+
+- Expand the dashboard card README with HACS custom-repository installation,
+  a compact illustrated hero, a feature overview, and screenshots of the card
+  designs, palette editors, preset library and visual settings.
+- Include the preset opening preference in the card settings reference.
+
 ## [0.7.2] - 2026-10-09
 
 ### Fixed

@@ -1,25 +1,56 @@
-# Dashboard light card and gradient editor
+<p align="center">
+  <img src="docs/images/hero.png" alt="Gradient lighting in a living room with the Hue Gradient popup editor" width="760">
+</p>
 
-The optional frontend controls any existing `light.*` entity. Hue gradients
+# Hue Gradient Light Card
+
+Bring your Hue gradients onto your Home Assistant dashboard. See your light's
+colors at a glance, open a color wheel to shape each stop, and save favorite
+combinations for next time.
+
+## Install with HACS
+
+You can install through HACS even before this repository appears in its default
+catalogue. With [HACS installed](https://www.hacs.xyz/docs/use/), follow its
+[custom repository workflow](https://www.hacs.xyz/docs/faq/custom_repositories/):
+
+1. Open **HACS → three-dot menu → Custom repositories**.
+2. Add `https://github.com/berti24/hue-gradient-controller`, select
+   **Integration** as the type, and click **Add**.
+3. Find **Philips Hue Gradient Controller** in HACS and download it.
+4. Restart Home Assistant. Make sure the built-in **Philips Hue** integration
+   already has your bridge and lights configured, then go to
+   **Settings → Devices & services → Add integration → Philips Hue Gradient
+   Controller** and select the bridges you want to control.
+5. Install the dashboard resource using the steps below. HACS downloads the
+   integration and its bundled card; the card still needs a file copy and
+   resource registration.
+
+See the [integration README](../README.md) for supported lights, bridge setup,
+actions and exact gradient snapshots.
+
+## Install the dashboard card
+
+The card controls any existing `light.*` entity. Hue gradients
 require this integration, an available individual native Hue gradient light on
 a selected bridge, valid capacity and supported modes, and the gradient actions.
 Ordinary light power, brightness, RGB and temperature use native light services.
 
-## Install and update
+For manual installation, copy `custom_components/hue_gradient_controller` to
+`/config/custom_components/`, restart Home Assistant, and add the integration
+as described above. Then, for either installation method:
 
-1. Install/update this repository through HACS as an **Integration**, or copy its
-   `custom_components/hue_gradient_controller` directory manually.
-2. Copy `custom_components/hue_gradient_controller/www/hue-gradient-light-card.js`
+1. Copy `custom_components/hue_gradient_controller/www/hue-gradient-light-card.js`
    from the installed integration to `/config/www/hue-gradient-light-card.js`.
    The copy also works independently for ordinary lights without loading the
    Python integration.
-3. Enable Advanced mode in your profile. Open **Settings → Dashboards →
+2. Enable Advanced mode in your profile. Open **Settings → Dashboards →
    three-dot menu → Resources → Add resource**. Enter
-   `/local/hue-gradient-light-card.js?v=0.7.2` and choose **JavaScript module**.
+   `/local/hue-gradient-light-card.js?v=0.7.4` and choose **JavaScript module**.
    Use the installed release version when updating in the future.
-4. Hard-refresh the browser/companion app frontend. Add a card and search for
+3. Hard-refresh the browser/companion app frontend. Add a card and search for
    **Hue Gradient Light** or **Hue Gradient Editor**.
-5. For the Bubble design, install **Bubble Card** through HACS and load its
+4. For the Bubble design, install **Bubble Card** through HACS and load its
    resource. Without Bubble the card renders a Tile; its editor explains the
    missing dependency and keeps the saved design.
 
@@ -34,9 +65,64 @@ For YAML-managed dashboard resources:
 ```yaml
 lovelace:
   resources:
-    - url: /local/hue-gradient-light-card.js?v=0.7.2
+    - url: /local/hue-gradient-light-card.js?v=0.7.4
       type: module
 ```
+
+## Features at a glance
+
+- **Two dashboard designs:** native Tile or Bubble styling, with live light-color
+  backgrounds and an optional gradient around the icon.
+- **Direct light controls:** toggle power from the icon, open the editor from the
+  card, and optionally add a gradient-filled brightness slider to Tile cards.
+- **Multi-point editing:** drag individual gradient stops on the color wheel,
+  add or remove colors up to the light's capacity, and choose a reported mode.
+- **Colors and whites:** switch between a color wheel and a warm-to-cool RGB
+  palette; ordinary temperature lights get their native Kelvin control.
+- **Presets:** browse built-in palettes, star favorites, and save your own shared
+  recipes. Favorites and opening preferences sync across authenticated devices.
+- **Snapshot and restore:** keep an exact gradient snapshot through the editor's
+  menu, including xy points, mode, power and brightness.
+- **Flexible placement:** use the compact card-owned popup or place the standalone
+  editor on a dashboard or inside a Bubble popup.
+- **Touch and keyboard controls:** hold to arm touch editing, use arrow keys to
+  move points, and enable Protect while off to prevent accidental changes.
+
+Ordinary light controls work with existing `light.*` entities. Gradient editing,
+presets and exact snapshots require this integration and a selected, available,
+individual native Hue gradient light. Bubble styling additionally requires
+[Bubble Card](https://github.com/Clooos/Bubble-Card).
+
+## Screenshots
+
+These are screenshots of the actual card in the repository's browser compatibility
+fixture, using native Home Assistant and Bubble renderers with simulated light
+state. The hero combines a room illustration with the popup editor screenshot.
+Appearance follows your HA theme.
+
+**Tile with brightness slider (left) and Bubble (right)**
+
+![Tile and Bubble designs showing the same live gradient](docs/images/card-designs.png)
+
+**Color wheel with presets (left) and the Whites palette (right)**
+
+![Gradient stop controls in the color and white palettes](docs/images/color-and-whites.png)
+
+Whites edits the same RGB stops. Colored stops retain their original color until
+moved; the small swatches identify colors outside the white palette.
+
+**Preset library**
+
+<img src="docs/images/preset-library.png" alt="Built-in preset grid with palette previews and favorite stars" width="380">
+
+**Visual settings**
+
+<details>
+<summary>Show the card configuration editor</summary>
+
+<img src="docs/images/card-settings.png" alt="Card settings for entity, design, presets, subtitle, brightness and backgrounds" width="420">
+
+</details>
 
 ## Card configuration
 
@@ -53,6 +139,7 @@ All public card options are available in its visual editor:
 | --- | --- | --- |
 | Entity | `entity` | Required; any light entity |
 | Design | `design` | `tile`; "Tile like" (`tile`) or "Bubble like" (`bubble`) |
+| Preset opening state | `presets_expansion` | `remember`; synchronized preference, or `collapsed` / `expanded` |
 | Name | `name` | Entity's displayed name |
 | Icon | `icon` | Entity icon/native light fallback |
 | Protect while off | `protect_when_off` | `false`; lock editing while the light is off |
