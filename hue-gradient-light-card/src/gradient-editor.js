@@ -12,6 +12,7 @@ import "./preset-browser.js";
 let pointId = 0;
 export class HueGradientEditor extends LitElement {
   static properties = {
+    popup: { type: Boolean, reflect: true },
     _config: { state: true }, _points: { state: true }, _selected: { state: true },
     _whites: { state: true }, _brightness: { state: true }, _kelvin: { state: true }, _mode: { state: true },
     _error: { state: true }, _snapshot: { state: true }, _menu: { state: true },

@@ -194,7 +194,7 @@ export class PresetBrowser extends LitElement {
     .star.star{background:transparent;align-items:flex-start;justify-content:flex-end;padding:4px}
     .star-visual{display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex:none;border-radius:8px;background:rgba(0,0,0,.48)}
     .star-visual ha-icon{display:flex;align-items:center;justify-content:center;line-height:0;width:16px;height:16px;--mdc-icon-size:16px}
-    :host{display:block;color:inherit;font:inherit;--preset-gap:8px;margin-bottom:16px}
+    :host{display:block;color:inherit;font:inherit;--preset-gap:8px;margin-bottom:var(--_gap,16px)}
     *{box-sizing:border-box}button,input{font:inherit;color:inherit}button{cursor:pointer;min-height:44px;border:1px solid var(--hgc-border-color,var(--divider-color));background:var(--hgc-control-surface,var(--secondary-background-color));border-radius:var(--hgc-control-radius,24px);padding:8px 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
     button:disabled{opacity:.45;cursor:default}button:focus-visible,input:focus-visible{outline:3px solid var(--hgc-focus-color,var(--primary-color));outline-offset:2px}ha-icon{--mdc-icon-size:20px}
     .heading,.footer,.actions{display:flex;align-items:center;gap:8px;justify-content:space-between}.heading button{border:0;background:transparent;padding:4px 0}.see-all{color:var(--hgc-focus-color,var(--primary-color))}.disclosure{font-weight:500}.footer{margin-top:12px}.arrows{display:flex;gap:4px}.arrows button{padding:6px;width:44px}

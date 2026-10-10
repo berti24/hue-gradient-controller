@@ -1,5 +1,48 @@
 import {test,expect} from "@playwright/test";
 
+test.describe("mobile popup",()=>{
+  test.use({isMobile:true,hasTouch:true});
+  test("expanded controls fit a phone's safe area and shorter screens remain scrollable",async({page})=>{
+    const errors=[];page.on("pageerror",error=>errors.push(error.message));
+    await page.goto("/?noEcho=1",{waitUntil:"domcontentloaded"});
+    await page.waitForFunction(()=>window.fixtureReady);
+    await page.evaluate(()=>{
+      document.documentElement.style.setProperty("--safe-area-inset-top","62px");
+      document.documentElement.style.setProperty("--safe-area-inset-bottom","34px");
+      tile.setConfig({entity:"light.strip",design:"tile",presets_expansion:"expanded"});tile.openPopup();
+    });
+    const dialog=page.locator("dialog"),editor=dialog.locator("hue-gradient-editor");
+    await expect(editor.locator("hgc-preset-browser .carousel")).toBeVisible();
+    for(const viewport of [{width:402,height:874},{width:390,height:844}]){
+      await page.setViewportSize(viewport);
+      const box=await dialog.boundingBox();
+      expect(box.height).toBeLessThan(viewport.height-144);
+      expect(await dialog.evaluate(el=>el.scrollHeight-el.clientHeight)).toBeLessThanOrEqual(1);
+      const wheel=await editor.locator(".wheel").boundingBox();
+      expect(wheel.width).toBeGreaterThanOrEqual(200);expect(wheel.width).toBeLessThanOrEqual(260);
+      const mode=editor.getByRole("combobox",{name:"Gradient mode"});
+      const modeBox=await mode.boundingBox();
+      expect(modeBox.y+modeBox.height).toBeLessThanOrEqual(box.y+box.height);
+      for(const name of ["Add color","View Whites palette","Close gradient editor"]){
+        expect((await editor.getByRole("button",{name,exact:true}).boundingBox()).height).toBeGreaterThanOrEqual(44);
+      }
+    }
+    await editor.getByRole("button",{name:"View Whites palette"}).tap();
+    await expect(editor.getByRole("group",{name:"White-tone color palette"})).toBeVisible();
+    await editor.getByRole("combobox",{name:"Gradient mode"}).tap();
+    await expect(editor.getByRole("listbox")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeVisible();
+    await page.setViewportSize({width:320,height:568});
+    expect(await dialog.evaluate(el=>el.scrollHeight)).toBeGreaterThan(await dialog.evaluate(el=>el.clientHeight));
+    await editor.getByRole("combobox",{name:"Gradient mode"}).scrollIntoViewIfNeeded();
+    await expect(editor.getByRole("combobox",{name:"Gradient mode"})).toBeInViewport();
+    await editor.getByRole("button",{name:"Close gradient editor"}).tap();
+    await expect(dialog).toHaveCount(0);
+    expect(await page.evaluate(()=>calls)).toEqual([]);expect(errors).toEqual([]);
+  });
+});
+
 test("popup widens only on desktop and keeps mobile sizing, controls and dismissal",async({page})=>{
   const errors=[];page.on("pageerror",error=>errors.push(error.message));
   await page.goto("/?noEcho=1",{waitUntil:"domcontentloaded"});

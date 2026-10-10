@@ -253,11 +253,11 @@ export class HueGradientLightCard extends HTMLElement {
     // rendering. It lives under the card, so dynamic HA theme variables inherit.
     const dialog=document.createElement("dialog");
     dialog.setAttribute("aria-label",`${this._config.name||this.hass.states[this._config.entity]?.attributes.friendly_name||this._config.entity} light controls`);
-    dialog.style.cssText="border:0;padding:0;background:transparent;color:var(--primary-text-color);max-height:calc(100dvh - 24px);overflow:auto;border-radius:var(--hgc-popup-radius,var(--bubble-pop-up-border-radius,var(--ha-card-border-radius,28px)));";
+    dialog.style.cssText="border:0;padding:0;background:transparent;color:var(--primary-text-color);max-height:calc(100dvh - 48px - max(var(--safe-area-inset-top,0px),env(safe-area-inset-top,0px)) - max(var(--safe-area-inset-bottom,0px),env(safe-area-inset-bottom,0px)));overflow:auto;overscroll-behavior:contain;border-radius:var(--hgc-popup-radius,var(--bubble-pop-up-border-radius,var(--ha-card-border-radius,28px)));";
     const style=document.createElement("style");
     style.textContent=`
-      dialog{width:min(var(--hgc-popup-width,352px),calc(100vw - 24px))}
-      @media (min-width:768px){dialog{width:min(var(--hgc-popup-width,560px),calc(100vw - 24px))}}
+      dialog{width:min(var(--hgc-popup-width,352px),calc(100vw - 24px));backdrop-filter:var(--ha-bottom-sheet-surface-backdrop-filter,var(--ha-dialog-surface-backdrop-filter,none));-webkit-backdrop-filter:var(--ha-bottom-sheet-surface-backdrop-filter,var(--ha-dialog-surface-backdrop-filter,none))}
+      @media (min-width:768px){dialog{width:min(var(--hgc-popup-width,560px),calc(100vw - 24px));backdrop-filter:var(--ha-dialog-surface-backdrop-filter,none);-webkit-backdrop-filter:var(--ha-dialog-surface-backdrop-filter,none)}}
       dialog::backdrop{background:var(--hgc-backdrop-color,rgba(0,0,0,.5))}
     `;
     dialog.append(style);

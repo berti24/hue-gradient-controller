@@ -17,6 +17,21 @@ export const editorStyles = css`
     font-size:var(--hgc-font-size,var(--ha-font-size-m,14px));
     line-height:var(--hgc-line-height,1.4);
   }
+  /* Card-owned popups use HA's dialog surface, independently of dashboard cards. */
+  :host([popup]) {
+    --_surface:var(--hgc-popup-surface,var(--ha-dialog-surface-background,var(--ha-color-surface-default,var(--primary-background-color))));
+  }
+  @media (max-width:767px) {
+    :host([popup]) {
+      --_surface:var(--hgc-popup-surface,var(--ha-bottom-sheet-surface-background,var(--ha-dialog-surface-background,var(--ha-color-surface-default,var(--primary-background-color)))));
+      --_gap:var(--hgc-spacing,12px);
+    }
+    :host([popup]) .editor { padding:var(--hgc-padding,12px); }
+    :host([popup]) .wheel {
+      width:min(100%,var(--hgc-wheel-size,clamp(200px,calc(100dvh - 550px - max(var(--safe-area-inset-top,0px),env(safe-area-inset-top,0px)) - max(var(--safe-area-inset-bottom,0px),env(safe-area-inset-bottom,0px))),260px)));
+      margin:var(--hgc-wheel-margin,4px auto 12px);
+    }
+  }
   * { box-sizing:border-box; }
   [hidden] { display:none !important; }
   .editor {

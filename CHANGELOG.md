@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-10-10
+
+### Fixed
+
+- Make the mobile popup editor shorter with tighter spacing and a smaller,
+  viewport-aware color wheel, preserving button touch targets and allowing
+  scrolling on shorter screens. Reserve clearance for mobile safe-area insets.
+- Use Home Assistant's dialog/background blur theme settings for card-owned
+  popups, with mobile bottom-sheet settings taking precedence and a solid theme
+  surface as fallback. Dashboard transparency remains independent; themes can
+  override the popup surface with `hgc-popup-surface`.
+- Verify expanded mobile controls, scrolling, palette/mode interactions and
+  separate popup/dashboard surfaces across themes; rebuild the dashboard resource.
+
 ## [0.8.0] - 2026-10-10
 
 ### Added

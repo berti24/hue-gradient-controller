@@ -366,6 +366,19 @@ the width assigned by the dashboard, including Sections column settings. Neither
 placement has a decorative grab handle; the light title and controls remain at
 the top.
 
+On mobile, card-owned popups use tighter padding and spacing, with a color wheel
+up to 260px across that shrinks to leave room for controls and safe-area insets.
+Buttons retain their 44px touch targets; shorter screens can scroll the popup.
+Dashboard editors retain their usual spacing and 300px wheel.
+
+Popup surfaces use Home Assistant's `ha-dialog-surface-background` and
+`ha-dialog-surface-backdrop-filter`, with the corresponding
+`ha-bottom-sheet-surface-background` and `ha-bottom-sheet-surface-backdrop-filter`
+taking precedence on mobile. Without a popup background in the theme, the popup
+uses HA's solid surface color. Dashboard editors continue to use the theme's card
+background, including transparency. `hgc-popup-surface` overrides only the
+card-owned popup; `hgc-surface` continues to style dashboard editors.
+
 ```yaml
 type: custom:hue-gradient-editor
 entity: light.living_room_strip
@@ -427,6 +440,7 @@ in HA themes (omit the leading `--` in theme YAML):
 | CSS custom property | Default/fallback |
 | --- | --- |
 | `--hgc-surface` | HA card background |
+| `--hgc-popup-surface` | HA bottom sheet (mobile) → HA dialog → HA solid surface |
 | `--hgc-control-surface`, `--hgc-icon-surface` | HA secondary background |
 | `--hgc-text-color`, `--hgc-secondary-text-color` | HA primary/secondary text |
 | `--hgc-border-color`, `--hgc-border-width` | HA divider, 1px |
@@ -434,8 +448,8 @@ in HA themes (omit the leading `--` in theme YAML):
 | `--hgc-shadow` | HA card shadow |
 | `--hgc-popup-radius` | Bubble popup radius → HA card radius → 28px |
 | `--hgc-control-radius` | Bubble button radius → Bubble radius → HA large radius → 24px |
-| `--hgc-popup-width`, `--hgc-wheel-size` | 560px desktop / 352px mobile (popup only), 300px |
-| `--hgc-padding`, `--hgc-spacing` | 16px |
+| `--hgc-popup-width`, `--hgc-wheel-size` | 560px desktop / 352px mobile (popup only); 300px wheel, up to 260px in mobile popups |
+| `--hgc-padding`, `--hgc-spacing` | 16px; 12px in mobile popups |
 | `--hgc-embedded-padding`, `--hgc-embedded-tools-margin` | 0px, 4px |
 | `--hgc-font-family`, `--hgc-font-size`, `--hgc-line-height` | HA font, 14px, 1.4 |
 | `--hgc-title-size`, `--hgc-title-weight`, `--hgc-count-font-size` | HA large font, 500, 13px |
@@ -452,7 +466,7 @@ in HA themes (omit the leading `--` in theme YAML):
 | `--hgc-slider-fill`, `--hgc-slider-thumb`, `--hgc-slider-track` | HA primary text, primary text, divider |
 | `--hgc-slider-track-height`, `--hgc-slider-thumb-size`, `--hgc-slider-thumb-shadow` | 8px, 20px, subtle thumb shadow |
 | `--hgc-button-gap`, `--hgc-row-gap`, `--hgc-button-padding` | 8px, 8px, 8px 14px |
-| `--hgc-select-padding`, `--hgc-wheel-margin` | 8px 16px, 8px auto 20px |
+| `--hgc-select-padding`, `--hgc-wheel-margin` | 8px 16px; 8px auto 20px wheel margin, 4px auto 12px in mobile popups |
 | `--hgc-mode-menu-radius`, `--hgc-mode-option-radius` | Control radius |
 | `--hgc-mode-menu-gap`, `--hgc-mode-menu-viewport-padding`, `--hgc-mode-menu-padding` | 8px, 8px, 6px |
 | `--hgc-mode-menu-max-height`, `--hgc-mode-menu-shadow` | 240px, HA card shadow or subtle raised shadow |
