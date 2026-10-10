@@ -18,6 +18,7 @@ for(const width of [1200,390])test(`optional Tile brightness row has full palett
   const errors=[];page.on("pageerror",e=>errors.push(e.message));await ready(page);
   await expect(tileCard(page).getByRole("slider")).toHaveCount(0);
   // Use the actual config switch and verify that changing settings never writes.
+  await page.locator('#config').getByRole('heading',{name:'Features',exact:true}).click();
   const field=page.locator('#config ha-selector-boolean').filter({has:page.locator('p.primary').filter({hasText:/^Brightness slider$/})});
   const toggle=field.getByRole("switch");await toggle.focus();await toggle.press("Space");
   await expect.poll(()=>page.evaluate(()=>tile._config.show_brightness_slider)).toBe(true);
@@ -74,7 +75,7 @@ test("brightness palette follows live colors; off/unavailable/on-off and Bubble 
     bubble.setConfig({...bubble._config,show_brightness_slider:true});configEditor.setConfig({...tile._config,design:'bubble'});
   });
   await expect(page.locator('#cards hue-gradient-light-card').last().getByRole('slider')).toHaveCount(0);
-  await expect.poll(()=>page.evaluate(()=>configEditor.shadowRoot.querySelector('ha-form').schema.some(field=>field.name==='show_brightness_slider'))).toBe(false);
+  await expect(page.locator('#config').getByRole('heading',{name:'Features',exact:true})).toHaveCount(0);
 });
 
 test("native slider writes wait for popup edits and queued requests discard on disconnect",async({page})=>{

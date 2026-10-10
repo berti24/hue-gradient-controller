@@ -45,6 +45,7 @@ test("opt-in Off mode disables edits until reported on, while power remains usab
 test("visual protection option reaches the popup and the standalone config editor", async ({ page }) => {
   await page.goto("/?noEcho=1", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.fixtureReady);
+  await page.locator("#config").getByRole("heading",{name:"Interactions",exact:true}).click();
   await page.locator("#config").getByLabel("Protect while off", { exact: true }).click();
   await page.evaluate(() => {
     tile.openPopup();
@@ -57,6 +58,7 @@ test("visual protection option reaches the popup and the standalone config edito
   await page.evaluate(() => tile.setConfig({ ...tile._config, protect_when_off: false }));
   await expect(page.locator("dialog .point").first()).toBeEnabled();
   await page.getByRole("button", { name: "Close gradient editor" }).click();
+  await page.locator("hue-gradient-editor-config-editor").getByRole("heading",{name:"Interactions",exact:true}).click();
   await page.locator("hue-gradient-editor-config-editor").getByLabel("Protect while off", { exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.savedEmbedded?.protect_when_off)).toBe(true);
   expect(await page.evaluate(() => calls)).toEqual([]);

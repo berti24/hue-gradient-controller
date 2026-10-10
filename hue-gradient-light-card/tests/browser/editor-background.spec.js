@@ -11,8 +11,9 @@ for(const width of [1200,390])test(`editor background can be toggled independent
   });
   const editor=page.locator("#editors hue-gradient-editor").first(),section=editor.locator("section.editor");
   const form=page.locator("#config hue-gradient-editor-config-editor");
+  await form.getByRole("heading",{name:"Content",exact:true}).click();
   await expect(form.locator("p.primary").filter({hasText:/^Card background$/})).toBeVisible();
-  const toggle=form.getByRole("switch").last();
+  const toggle=form.locator('ha-selector-boolean').filter({has:page.locator('p.primary').filter({hasText:/^Card background$/})}).getByRole("switch");
   await expect(toggle).not.toBeChecked();
   expect(await section.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
   await toggle.focus();await toggle.press("Space");

@@ -12,7 +12,7 @@ createServer(async(req,res)=>{
   const path=resolve(root,`.${decodeURIComponent(fileRoute==="/"?"/hue-gradient-light-card/tests/fixture.html":fileRoute)}`);
   if(!path.startsWith(root+sep)){res.writeHead(403).end();return;}
   try{
-    const data=await readFile(path);res.setHeader("Content-Type",path.endsWith(".html")?"text/html":path.endsWith(".js")?"text/javascript":"application/octet-stream");
+    const data=await readFile(path);res.setHeader("Content-Type",path.endsWith(".html")?"text/html":path.endsWith(".js")?"text/javascript":path.endsWith(".svg")?"image/svg+xml":"application/octet-stream");
     res.end(data);
   }catch{res.writeHead(404).end();}
 }).listen(port,"127.0.0.1",()=>console.log(`Frontend test fixture: http://127.0.0.1:${port}`));

@@ -27,6 +27,7 @@ test("power off overrides pending Whites feedback in both views and header icons
 });
 for(const version of ["3.4.1","2.3.4"])test(`native subtitle picker controls actual Tile and Bubble ${version} text without changing hass states`,async({page})=>{
   const errors=await ready(page,version),form=page.locator("#config"),cards=page.locator("#cards hue-gradient-light-card");
+  await form.getByRole("heading",{name:"Content",exact:true}).click();
   const text=card=>card.locator("ha-tile-info,.bubble-state");
   const picker=form.locator("ha-entity-state-content-picker");
   const add=async name=>{await picker.getByRole("button",{name:"add",exact:true}).click();await form.getByText(name,{exact:true}).click();};
@@ -68,6 +69,7 @@ test("overflow rows, blur, outside dismissal, Escape and native More info",async
 });
 test("visual opacity slider changes the actual renderer background with fully opaque controls",async({page})=>{
   const errors=await ready(page);
+  await page.locator("#config").getByRole("heading",{name:"Content",exact:true}).click();
   const slider=page.locator("#config").getByRole("slider");
   for(const value of [0,35,100]){
     await slider.focus();await page.keyboard.press("Home");if(value===100)await page.keyboard.press("End");

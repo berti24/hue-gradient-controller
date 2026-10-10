@@ -2,6 +2,7 @@ import {test,expect} from "@playwright/test";
 async function ready(page){
   await page.goto("/?noBubble=1",{waitUntil:"domcontentloaded"});
   await page.waitForFunction(()=>window.fixtureReady);
+  await page.locator("#config").getByRole("heading",{name:"Content",exact:true}).click();
   await expect(page.locator("#config").getByRole("radio",{name:"Bubble like",exact:true})).toBeVisible();
 }
 test("native Tile icons are round and native fields and unselected radios have contrast in both themes",async({page})=>{
@@ -70,6 +71,7 @@ test("native icon picker stays anchored to its field and saves the selected icon
 });
 test("native visual form Name input sends config-changed without service calls",async({page})=>{
   await page.goto("/?noBubble=1",{waitUntil:"domcontentloaded"});await page.waitForFunction(()=>window.fixtureReady);
+  await page.locator("#config").getByRole("heading",{name:"Content",exact:true}).click();
   await page.evaluate(()=>configEditor.addEventListener("config-changed",(e)=>window.edited=e.detail.config));
   const form=page.locator("#config");
   await form.getByRole("textbox",{name:"Name",exact:true}).fill("Desk lamp");

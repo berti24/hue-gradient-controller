@@ -284,7 +284,13 @@ export class HueGradientLightCard extends HTMLElement {
     this._card?.focus?.();
   }
   getCardSize(){return this._card?.getCardSize?.()??1;}
-  getGridOptions(){return this._card?.getGridOptions?.()??(this._config?.design==="bubble"&&customElements.get("bubble-card")?{columns:12,rows:"auto"}:{columns:6,rows:this._config?.design==="tile"&&this._config.show_brightness_slider?2:1,min_columns:6,min_rows:this._config?.design==="tile"&&this._config.show_brightness_slider?2:1});}
+  getGridOptions(){
+    if(this._card?.getGridOptions)return this._card.getGridOptions();
+    if(this._config?.design==="bubble"&&customElements.get("bubble-card"))return {columns:12,rows:"auto"};
+    const slider=this._config?.design==="tile"&&this._config.show_brightness_slider;
+    const inline=slider&&this._config.features_position==="inline",rows=slider&&!inline?2:1;
+    return {columns:6,rows,min_columns:inline?12:6,min_rows:rows};
+  }
   static getConfigElement(){return document.createElement("hue-gradient-light-card-config-editor");}
   static getStubConfig(hass){return {entity:Object.keys(hass?.states??{}).find((id)=>id.startsWith("light."))??"light.example",design:"tile",color_background_opacity:70};}
 }

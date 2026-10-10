@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-10
+
+### Added
+
+- Add Tile's native inline brightness slider placement beside the name, selected
+  through the visual editor or `features_position: inline`. Existing cards keep
+  their below-header slider placement by default; Bubble ignores this option.
+
+### Changed
+
+- Organize card settings into native Tile-style collapsible Content, Interactions,
+  and Features sections, with Tile's illustrated brightness placement selector.
+  The standalone editor also groups its content and interaction settings.
+- Verify collapsed settings, saved configuration, native layout sizing, slider
+  interactions and off-state protection at desktop and mobile widths.
+
 ## [0.7.6] - 2026-10-10
 
 ### Fixed

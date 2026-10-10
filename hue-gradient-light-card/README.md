@@ -135,6 +135,11 @@ entity: light.living_room_strip
 
 All public card options are available in its visual editor:
 
+The editor uses Tile's collapsible **Content**, **Interactions**, and **Features**
+sections. Entity stays visible above them. Features is available for the Tile
+design; Content holds appearance and subtitle settings, and Interactions holds
+off-state protection and preset opening behavior.
+
 | Field | YAML | Default |
 | --- | --- | --- |
 | Entity | `entity` | Required; any light entity |
@@ -144,7 +149,8 @@ All public card options are available in its visual editor:
 | Icon | `icon` | Entity icon/native light fallback |
 | Protect while off | `protect_when_off` | `false`; lock editing while the light is off |
 | Subtitle | `state_content` | `['state', 'brightness']`; native Tile picker; supports ordered state/attribute names, `hgc_color_count`, `hgc_gradient_mode`; `[]` hides the line |
-| Brightness slider | `show_brightness_slider` | `false`; Tile-like cards only, adds a native brightness control below the header |
+| Brightness slider | `show_brightness_slider` | `false`; Tile-like cards only, adds a native brightness control |
+| Features position | `features_position` | `bottom`; `inline` puts brightness beside the name, in the right side of the first row; Tile-like cards only |
 | Gradient icon background | `icon_gradient_background` | `false`; also supported by the standalone editor and forwarded to its popup |
 | Light color card background | `color_background` | `true` |
 | Light color background opacity | `color_background_opacity` | 70; number from 0 to 100 |
@@ -180,13 +186,16 @@ type: custom:hue-gradient-light-card
 entity: light.living_room_strip
 design: tile
 show_brightness_slider: true
+features_position: inline
 ```
 
 The filled slider blends all current gradient colors, with a dimmed gradient
 across the remaining track. It follows live color changes independently of the
 card background option. Ordinary color/temperature lights use their current
 color; lights without brightness support omit the feature. Native Tile handles
-keyboard/touch interactions and the extra dashboard row. Adjusting brightness
+keyboard/touch interactions and dashboard sizing. In **Features**, choose **Below**
+for the second row (the default), or **Inline** for Tile's slider beside the name,
+using the space on the right. Adjusting brightness
 turns an off light on by default; `protect_when_off: true` disables this slider
 while off and discards unsent brightness requests on power-off. Unavailable
 lights cannot send commands. Bubble keeps

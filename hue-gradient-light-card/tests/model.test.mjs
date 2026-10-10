@@ -7,7 +7,7 @@ const attrs={supported_color_modes:["xy","color_temp"],color_mode:"xy",rgb_color
   gradient_colors_xy:[[.6,.3],[.2,.1]],gradient_colors_rgb:[[255,0,0],[0,0,255]]};
 const hass={states:{"light.strip":{state:"on",attributes:attrs}},entities:{"light.strip":{platform:"hue"}},services:{hue_gradient_controller:{set_gradient:{}}}};
 test("configuration defaults, overrides and validation",()=>{
-  assert.deepEqual(normalizeConfig({entity:"light.strip",name:"",icon:" "}),{entity:"light.strip",design:"tile",presets_expansion:"remember",show_brightness_slider:false,protect_when_off:false,color_background:true,icon_gradient_background:false,color_background_opacity:70,...SUBTITLE_DEFAULTS});
+  assert.deepEqual(normalizeConfig({entity:"light.strip",name:"",icon:" "}),{entity:"light.strip",design:"tile",features_position:"bottom",presets_expansion:"remember",show_brightness_slider:false,protect_when_off:false,color_background:true,icon_gradient_background:false,color_background_opacity:70,...SUBTITLE_DEFAULTS});
   for (const editor of [false,true]) {
     assert.equal(normalizeConfig({entity:"light.strip"},editor).protect_when_off,false);
     assert.equal(normalizeConfig({entity:"light.strip",protect_when_off:true},editor).protect_when_off,true);
@@ -17,6 +17,8 @@ test("configuration defaults, overrides and validation",()=>{
   assert.equal(normalizeConfig({entity:"light.strip"},true).embedded,false);
   assert.equal(normalizeConfig({entity:"light.strip",show_brightness_slider:true}).show_brightness_slider,true);
   assert.throws(()=>normalizeConfig({entity:"light.strip",show_brightness_slider:"yes"}));
+  for(const position of ["bottom","inline"])assert.equal(normalizeConfig({entity:"light.strip",features_position:position}).features_position,position);
+  for(const position of ["side",true,42])assert.throws(()=>normalizeConfig({entity:"light.strip",features_position:position}),/features_position/);
   for(const bad of [{entity:"sensor.x"},{entity:"light.x",design:"oops"},{entity:"light.x",color_background_opacity:101},{entity:"light.x",color_background_opacity:"70"},{entity:"light.x",show_mode:"true"},{entity:"light.x",color_background:1},{entity:"light.x",icon_gradient_background:"yes"},{entity:"light.x",state_content:42},{entity:"light.x",state_content:["state","state"]}])assert.throws(()=>normalizeConfig(bad));
 });
 test("new colors oppose the last hue and stay unique across repeated additions",()=>{
