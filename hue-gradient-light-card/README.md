@@ -46,7 +46,7 @@ as described above. Then, for either installation method:
    Python integration.
 2. Enable Advanced mode in your profile. Open **Settings → Dashboards →
    three-dot menu → Resources → Add resource**. Enter
-   `/local/hue-gradient-light-card.js?v=0.7.5` and choose **JavaScript module**.
+   `/local/hue-gradient-light-card.js?v=0.8.2` and choose **JavaScript module**.
    Use the installed release version when updating in the future.
 3. Hard-refresh the browser/companion app frontend. Add a card and search for
    **Hue Gradient Light** or **Hue Gradient Editor**.
@@ -65,7 +65,7 @@ For YAML-managed dashboard resources:
 ```yaml
 lovelace:
   resources:
-    - url: /local/hue-gradient-light-card.js?v=0.7.5
+    - url: /local/hue-gradient-light-card.js?v=0.8.2
       type: module
 ```
 
@@ -202,6 +202,9 @@ lights cannot send commands. Bubble keeps
 its original layout and ignores this Tile-only option.
 
 Both configuration editors show the version bundled in the loaded JavaScript.
+The card and integration share the same release version. If the editor version
+differs from the installed integration's version, repeat the update steps above
+to replace the card file and refresh the cached frontend.
 The subtitle uses Home Assistant's native Tile option picker: add, remove and
 reorder fields. Existing `show_state`, `show_brightness`, `show_color_count` and
 `show_mode` YAML booleans still work when `state_content` is absent; an explicit

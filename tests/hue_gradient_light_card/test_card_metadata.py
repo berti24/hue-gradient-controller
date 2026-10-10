@@ -1,9 +1,22 @@
 """Validate the optional frontend is included in the integration distribution."""
 
 import json
+import re
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_documented_resource_versions_match_release() -> None:
+    """Installation examples load the same release as the integration."""
+    integration = PROJECT_ROOT / "custom_components/hue_gradient_controller"
+    version = json.loads((integration / "manifest.json").read_text())["version"]
+    readme = (PROJECT_ROOT / "hue-gradient-light-card/README.md").read_text()
+    resource_versions = re.findall(
+        r"/local/hue-gradient-light-card\.js\?v=([\d.]+)", readme
+    )
+    assert resource_versions
+    assert set(resource_versions) == {version}
 
 
 def test_frontend_asset_matches_release_and_is_self_contained() -> None:

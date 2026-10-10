@@ -12,6 +12,14 @@ for(const width of [1200,390])test(`card appearance settings and editor headers 
   await page.waitForFunction(()=>window.fixtureReady);
   await expect(page).toHaveTitle("Hue Gradient Card compatibility fixture");
   await expect(page.locator("#config .version")).toHaveText(`Hue Gradient Card ${version}`);
+  await page.evaluate(()=>{
+    const editor=document.createElement("hue-gradient-editor-config-editor");
+    editor.id="gradient-config";
+    editor.setConfig({type:"custom:hue-gradient-editor",entity:"light.strip"});
+    editor.hass=hass;
+    document.body.append(editor);
+  });
+  await expect(page.locator("#gradient-config .version")).toHaveText(`Hue Gradient Card ${version}`);
   const first="rgb(255, 130, 10)";
   const nativeIcon=page.locator("#cards hue-gradient-light-card").first().locator("ha-state-icon");
   const bubbleIcon=page.locator("#cards hue-gradient-light-card").last().locator(".bubble-icon");

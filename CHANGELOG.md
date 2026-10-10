@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] - 2026-10-10
+
+### Fixed
+
+- Align dashboard resource installation examples with the integration and
+  rebuilt card release, and explain how to resolve an installed version mismatch.
+- Require integration metadata, bundled card UI versions, and installation
+  examples to remain aligned in the agent guide; add a metadata regression check
+  for the documented resource versions.
+
 ## [0.8.1] - 2026-10-10
 
 ### Fixed

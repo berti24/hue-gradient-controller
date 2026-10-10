@@ -98,11 +98,22 @@ changes, must do all of the following before handoff:
      version HACS displays.
    - `pyproject.toml`.
    - the local project package entry in `uv.lock`.
+   - the bundled card's banner and version displayed in both card UI editors.
+   - the dashboard resource version queries in installation examples.
 3. Add a dated, versioned entry to `CHANGELOG.md` describing the user-visible
    and important internal changes. Do not leave completed work only under
    `Unreleased`.
 4. Run the metadata tests, which enforce valid SemVer, synchronized version
    surfaces, and a matching changelog heading.
+
+The integration and dashboard card always share one release version. The
+integration manifest is the source of truth for the card build; never hard-code
+an independent card version. After every version change, run `npm run build` in
+`hue-gradient-light-card/` and commit the rebuilt JavaScript bundle. Verify the
+loaded card editor version against the manifest with the browser tests. Keep
+installation examples aligned with that release, and document that existing
+installations must copy the updated card file, update the dashboard resource
+version query, and refresh each client to load the matching card.
 
 Choose the increment as follows:
 
