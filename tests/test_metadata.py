@@ -6,6 +6,8 @@ import struct
 import tomllib
 from pathlib import Path
 
+import yaml
+
 PROJECT_ROOT = Path(__file__).parent.parent
 SEMVER_PATTERN = re.compile(
     r"^(0|[1-9]\d*)\."
@@ -63,3 +65,18 @@ def test_local_brand_icons_have_supported_dimensions() -> None:
 
     assert _png_dimensions(brand_dir / "icon.png") == (256, 256)
     assert _png_dimensions(brand_dir / "icon@2x.png") == (512, 512)
+
+
+def test_hacs_validation_uses_the_triggering_commit() -> None:
+    """HACS raw downloads must use the PR head or triggering commit SHA."""
+    workflow = yaml.safe_load(
+        (PROJECT_ROOT / ".github/workflows/validate.yml").read_text()
+    )
+    action = next(
+        step
+        for step in workflow["jobs"]["validate-hacs"]["steps"]
+        if step.get("uses", "").startswith("hacs/action@")
+    )
+    assert action.get("env", {}).get("REPOSITORY_REF") == (
+        "${{ github.event.pull_request.head.sha || github.sha }}"
+    )

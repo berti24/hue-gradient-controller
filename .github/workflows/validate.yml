@@ -18,6 +18,9 @@ jobs:
     steps:
       - name: HACS validation
         uses: hacs/action@main
+        env:
+          # Avoid branch raw-content lookups and validate the actual PR head.
+          REPOSITORY_REF: ${{ github.event.pull_request.head.sha || github.sha }}
         with:
           category: integration
           ignore: brands

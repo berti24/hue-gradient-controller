@@ -7,6 +7,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [1.0.0] - 2026-10-11
 
+### Fixed
+
+- Validate HACS metadata against the triggering commit SHA, including the
+  pull request head, instead of relying on branch-based raw file downloads.
+- Add a regression check for the HACS commit selection.
+
 ### Features
 
 - Native Hue gradient light support with live colors, modes, and point capacity.
