@@ -1,0 +1,22 @@
+{
+  "domain": "hue_gradient_controller",
+  "name": "Philips Hue Gradient Controller",
+  "codeowners": [
+    "@berti24"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "hue",
+    "websocket_api"
+  ],
+  "documentation": "https://github.com/berti24/hue-gradient-controller",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/berti24/hue-gradient-controller/issues",
+  "loggers": [
+    "aiohue"
+  ],
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "1.0.0"
+}

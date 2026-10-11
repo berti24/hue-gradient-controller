@@ -1,0 +1,116 @@
+[
+  {
+    "id": "builtin:ocean",
+    "name": "Ocean",
+    "colors": [
+      "#00D4FF",
+      "#2448FF"
+    ]
+  },
+  {
+    "id": "builtin:ember",
+    "name": "Ember",
+    "colors": [
+      "#FFB000",
+      "#FF3300"
+    ]
+  },
+  {
+    "id": "builtin:candlelight",
+    "name": "Candlelight",
+    "colors": [
+      "#FFB45E",
+      "#FFE4B5"
+    ]
+  },
+  {
+    "id": "builtin:aurora",
+    "name": "Aurora",
+    "colors": [
+      "#65FF66",
+      "#00D9C8",
+      "#9747FF"
+    ]
+  },
+  {
+    "id": "builtin:forest",
+    "name": "Forest",
+    "colors": [
+      "#D5F4A0",
+      "#36B66B",
+      "#007A78"
+    ]
+  },
+  {
+    "id": "builtin:rose",
+    "name": "Rose",
+    "colors": [
+      "#FFC6DA",
+      "#FF579A",
+      "#AE38A6"
+    ]
+  },
+  {
+    "id": "builtin:sunset",
+    "name": "Sunset",
+    "colors": [
+      "#FFB23F",
+      "#FF607E",
+      "#C34BDB",
+      "#5246FF"
+    ]
+  },
+  {
+    "id": "builtin:twilight",
+    "name": "Twilight",
+    "colors": [
+      "#FFC8A2",
+      "#C27DD9",
+      "#7544CF",
+      "#243B87"
+    ]
+  },
+  {
+    "id": "builtin:ice",
+    "name": "Ice",
+    "colors": [
+      "#D5FFFF",
+      "#74E5FF",
+      "#279BFF",
+      "#4861DA"
+    ]
+  },
+  {
+    "id": "builtin:prism",
+    "name": "Prism",
+    "colors": [
+      "#FF3355",
+      "#FF9633",
+      "#FFE066",
+      "#00D9DD",
+      "#8447FF"
+    ]
+  },
+  {
+    "id": "builtin:lagoon",
+    "name": "Lagoon",
+    "colors": [
+      "#E6EF8A",
+      "#8DE190",
+      "#35D7AE",
+      "#00BED1",
+      "#287FD8"
+    ]
+  },
+  {
+    "id": "builtin:neon",
+    "name": "Neon",
+    "colors": [
+      "#FF329F",
+      "#BB38FF",
+      "#4655FF",
+      "#00DDD0",
+      "#A2F542"
+    ]
+  }
+]

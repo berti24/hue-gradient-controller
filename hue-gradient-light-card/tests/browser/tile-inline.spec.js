@@ -1,0 +1,64 @@
+import {test,expect} from "@playwright/test";
+
+for(const width of [1200,390])test(`collapsible Tile settings and inline brightness at ${width}px`,async({page})=>{
+  await page.setViewportSize({width,height:1000});
+  const errors=[];page.on("pageerror",e=>errors.push(e.message));
+  await page.goto("/?noBubble=1&noEcho=1",{waitUntil:"domcontentloaded"});
+  await page.waitForFunction(()=>window.fixtureReady);
+  const form=page.locator("#config"),card=page.locator("#cards hue-gradient-light-card").first();
+  await expect(form.locator("ha-entity-picker")).toBeVisible();
+  await expect(form.getByRole("textbox",{name:"Name",exact:true})).not.toBeVisible();
+  const brightnessField=form.locator('ha-selector-boolean').filter({has:page.locator('p.primary').filter({hasText:/^Brightness slider$/})});
+  await expect(brightnessField).not.toBeVisible();
+  await form.getByRole("heading",{name:"Content",exact:true}).click();
+  const name=form.getByRole("textbox",{name:"Name",exact:true});
+  await name.fill("Desk strip");await name.blur();
+  await form.getByRole("heading",{name:"Content",exact:true}).click();
+  await expect(name).not.toBeVisible();
+  await form.getByRole("heading",{name:"Features",exact:true}).click();
+  const toggle=brightnessField.getByRole("switch");
+  await toggle.focus();await toggle.press("Space");
+  await form.getByRole("radio",{name:/^Inline/}).click();
+  await expect.poll(()=>page.evaluate(()=>tile._config.features_position)).toBe("inline");
+  const illustrations=form.locator('ha-select-box img');
+  await expect(illustrations).toHaveCount(2);
+  for(const illustration of await illustrations.all())await expect.poll(()=>illustration.evaluate(img=>img.naturalWidth)).toBeGreaterThan(0);
+  const featuresPanel=form.locator('ha-form-expandable').filter({has:page.getByRole('heading',{name:'Features',exact:true})});
+  await expect.poll(async()=>{
+    const panel=await featuresPanel.boundingBox(),choice=await form.getByRole('radio',{name:/^Inline/}).boundingBox();
+    return choice.y+choice.height<=panel.y+panel.height;
+  }).toBe(true);
+  expect(await page.evaluate(()=>tile._config.name)).toBe("Desk strip");
+  expect(await page.evaluate(()=>calls)).toEqual([]);
+  await page.evaluate(()=>{
+    originalTile.setConfig({type:"tile",entity:"light.strip",features:[{type:"light-brightness"}],features_position:"inline"});originalTile.hass=hass;
+  });
+  const slider=card.getByRole("slider",{name:"brightness",exact:true});
+  await expect(slider).toBeVisible();
+  expect(await page.evaluate(()=>tile.getGridOptions())).toEqual(await page.evaluate(()=>originalTile.getGridOptions()));
+  expect(await page.evaluate(()=>tile.getCardSize())).toBe(1);
+  const info=await card.locator("ha-tile-info").boundingBox(),track=await slider.boundingBox(),box=await card.boundingBox();
+  expect(track.x).toBeGreaterThanOrEqual(info.x+info.width);
+  expect(track.y).toBeLessThan(info.y+info.height);
+  expect(track.y+track.height).toBeGreaterThan(info.y);
+  expect(track.x+track.width).toBeLessThanOrEqual(box.x+box.width);
+  await expect.poll(()=>slider.evaluate(el=>getComputedStyle(el.querySelector(".slider-track-bar")).backgroundImage)).toContain("0, 74, 255");
+  await slider.press("ArrowRight");
+  await expect.poll(()=>page.evaluate(()=>calls.at(-1)?.data.brightness_pct)).toBe(71);
+  expect(await page.evaluate(()=>Boolean(tile._dialog))).toBe(false);
+  await page.evaluate(()=>{
+    calls.length=0;tile.setConfig({...tile._config,protect_when_off:true});
+    const current=hass.states['light.strip'];updateHass({states:{...hass.states,'light.strip':{...current,state:'off'}}});
+  });
+  await expect.poll(()=>slider.evaluate(el=>el.getRootNode().host.disabled)).toBe(true);
+  await slider.press("ArrowRight");expect(await page.evaluate(()=>calls)).toEqual([]);
+  await form.getByRole("radio",{name:/^Below/}).click();
+  await expect.poll(()=>page.evaluate(()=>tile.getCardSize())).toBe(2);
+  await form.getByRole("heading",{name:"Content",exact:true}).click();
+  await expect(name).toHaveValue("Desk strip");
+  await form.getByRole("radio",{name:"Bubble like",exact:true}).click();
+  await expect(form.getByRole("heading",{name:"Features",exact:true})).toHaveCount(0);
+  await expect(card.getByRole("slider")).toHaveCount(0);
+  expect(await page.evaluate(()=>tile._config.features_position)).toBe("bottom");
+  expect(errors).toEqual([]);
+});

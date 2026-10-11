@@ -1,0 +1,5 @@
+# Card development dependencies, compatibility fixtures and browser artifacts
+node_modules/
+.cache/
+test-results/
+playwright-report/

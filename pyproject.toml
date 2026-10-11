@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hue-gradient-controller"
+version = "1.0.0"
+description = "Gradient controls for native Philips Hue lights in Home Assistant"
+requires-python = ">=3.14.2"
+
+[dependency-groups]
+dev = [
+  "aiohue==4.8.1",
+  "homeassistant==2026.7.2",
+  "pytest-homeassistant-custom-component==0.13.338",
+  "ruff==0.15.7",
+]
+
+[tool.uv]
+override-dependencies = [
+  "homeassistant==2026.7.2",
+  "sqlalchemy==2.0.51",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["custom_components.hue_gradient_controller*"]
+
+[tool.setuptools.package-data]
+"custom_components.hue_gradient_controller" = [
+  "*.json", "*.yaml", "translations/*.json", "brand/*.png", "www/*.js", "www/*.txt",
+]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "PL", "RUF", "SIM", "UP"]
+ignore = [
+  "COM812",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004", "S101", "SLF001"]
