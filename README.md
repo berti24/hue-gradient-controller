@@ -1,23 +1,23 @@
 # Philips Hue Gradient Controller
 
-Philips Hue Gradient Controller adds gradient controls to the light entities
-created by Home Assistant's native Philips Hue integration. It does not create
-entities, devices, credentials, network sessions, or polling jobs.
+<p align="center">
+  <img src="hue-gradient-light-card/docs/images/hero.png" alt="Gradient lighting in a living room with the Hue Gradient popup editor" width="760">
+</p>
+
+Home Assistant integration that adds gradient controls to the light entities
+created by HA's native Philips Hue integration.
 
 The integration adds live gradient state attributes to compatible Hue lights
 and registers actions to set, snapshot, and restore gradient state in scripts
 and automations.
 
+The integration also adds a [light card](hue-gradient-light-card/README.md) that is capable of controlling the created gradient attributes from the dashboard.
+
 ## Requirements
 
 - Home Assistant 2026.7 or newer
-- At least one bridge configured through Home Assistant's native Philips Hue
-  integration using Hue API v2
-- A Hue light whose API resource contains the `gradient` feature
-
-The Hue API does not have one universal six-zone limit. A gradient PUT needs at
-least two colors, while each light reports its own maximum in
-`gradient.points_capable`. The integration uses that value without clamping.
+- Home Assistant's native Philips Hue integration with at least 1 active bridge
+- A Hue light with the `gradient` feature
 
 ## Installation
 
@@ -38,8 +38,7 @@ attributes. The summary is calculated from existing entities and does not
 create or reassign entities or devices.
 
 One config entry stores the bridge selection. The selection can be changed
-later with **Configure** on the integration. **All Hue bridges** also covers Hue
-v2 bridges added in the future.
+later with **Configure** on the integration. **All Hue bridges** also covers bridges added in the future.
 
 ### Manual
 
@@ -49,8 +48,7 @@ and add the integration from the UI.
 
 ## Added light attributes
 
-Only native Hue light entities with a gradient feature on a selected bridge
-receive these attributes in Home Assistant's entity Details view:
+Native Hue light entities with a gradient feature on a selected bridge receive these attributes in Home Assistant's entity Details view:
 
 | Attribute | Meaning |
 | --- | --- |
