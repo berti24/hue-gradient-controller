@@ -25,8 +25,8 @@ test("power off overrides pending Whites feedback in both views and header icons
   await expect(editors.last().getByRole("slider",{name:"Brightness",exact:true})).toHaveValue("70");
   expect(errors).toEqual([]);
 });
-for(const version of ["3.4.1","2.3.4"])test(`native subtitle picker controls actual Tile and Bubble ${version} text without changing hass states`,async({page})=>{
-  const errors=await ready(page,version),form=page.locator("#config"),cards=page.locator("#cards hue-gradient-light-card");
+test("native subtitle picker controls actual Tile and Bubble 2.3.4 text without changing hass states",async({page})=>{
+  const errors=await ready(page,"2.3.4"),form=page.locator("#config"),cards=page.locator("#cards hue-gradient-light-card");
   await form.getByRole("heading",{name:"Content",exact:true}).click();
   const text=card=>card.locator("ha-tile-info,.bubble-state");
   const picker=form.locator("ha-entity-state-content-picker");

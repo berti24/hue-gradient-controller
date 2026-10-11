@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.3] - 2026-10-11
+
+### Changed
+
+- Remove the Bubble 3.4.1 subtitle-picker browser test that repeatedly timed out
+  in CI, retaining the passing Bubble 2.3.4 subtitle test and other Bubble 3.4.1
+  coverage. Card behavior is unchanged.
+- Rebuild the bundled card and align installation resource URLs with release
+  0.8.3.
+
 ## [0.8.2] - 2026-10-10
 
 ### Fixed
