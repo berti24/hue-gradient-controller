@@ -268,13 +268,43 @@ entity: light.living_room_strip
 ```bash
 uv sync --python 3.14.2
 .venv/bin/pytest
-.venv/bin/ruff check custom_components tests
+.venv/bin/ruff check custom_components tests scripts
 ```
 
 Architecture decisions are recorded in [`docs/adr`](docs/adr), and terminology
 is defined in [`docs/glossary.md`](docs/glossary.md). Releases follow Semantic
 Versioning and are recorded in [`CHANGELOG.md`](CHANGELOG.md). HACS displays the
 version from the integration manifest.
+
+## Releasing
+
+The integration and bundled card share one version. Update the manifest and
+package metadata, run `uv lock`, add a dated changelog entry, update dashboard
+resource URLs, and run `npm run build` in `hue-gradient-light-card/`. Commit the
+rebuilt card along with the release changes.
+
+Merge the release commit into `main`, then create and push a stable SemVer tag
+matching the manifest version:
+
+```bash
+git switch main
+git pull --ff-only
+git tag -a v1.0.0 -m "Release 1.0.0"
+git push origin v1.0.0
+```
+
+The Release workflow checks the tag and changelog, runs the Python, frontend,
+HACS and hassfest workflows, and creates a **draft** GitHub Release only when
+all checks pass. Its notes come from that version's changelog entry, and it
+attaches `hue-gradient-light-card.js` and `LICENSES.txt`. Open **GitHub → Releases**,
+review the draft, then publish it. Future releases use their matching
+`vMAJOR.MINOR.PATCH` tag. A tag alone or an unpublished draft is not a published
+HACS release; HACS downloads the integration from the published release's tag.
+Repository topics and public visibility are also required for HACS use.
+
+Existing installations must copy the updated card to `/config/www`, update the
+dashboard resource version query, and refresh each client, as explained in the
+[card update instructions](hue-gradient-light-card/README.md#install-the-dashboard-card).
 
 Brand assets and submission to the HACS default store are separate release
 tasks and are not part of this repository implementation.

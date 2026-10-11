@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          python-version: "3.14.2"
+      - name: Verify release tag and changelog
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: uv run --no-project python scripts/prepare_release.py "$RELEASE_TAG"
+
+  tests:
+    needs: prepare
+    uses: ./.github/workflows/tests.yml
+
+  frontend:
+    needs: prepare
+    uses: ./.github/workflows/frontend.yml
+
+  validate:
+    needs: prepare
+    uses: ./.github/workflows/validate.yml
+
+  draft:
+    needs: [prepare, tests, frontend, validate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          python-version: "3.14.2"
+      - name: Prepare release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          uv run --no-project python scripts/prepare_release.py "$RELEASE_TAG"
+          --output "$RUNNER_TEMP/release-notes.md"
+      - name: Create draft release with the bundled card
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag --draft \
+            --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md" \
+            custom_components/hue_gradient_controller/www/hue-gradient-light-card.js \
+            custom_components/hue_gradient_controller/www/LICENSES.txt

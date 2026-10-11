@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-10-11
+
+### Added
+
+- First stable release of the Philips Hue Gradient Controller integration and
+  its bundled Hue Gradient Light Card and Hue Gradient Editor.
+- Support native Hue gradient state, ordered colors and modes, exact gradient
+  snapshots and restore, bridge selection, and shared gradient presets.
+- Provide Tile and Bubble dashboard designs with visual editors, color and
+  brightness controls, mobile gestures, and optional protection while off.
+- Add a tag-triggered GitHub release workflow that verifies the manifest version
+  and dated changelog notes, runs the Python, frontend, HACS and hassfest checks,
+  and creates a draft release with the built card and third-party licenses.
+
+### Changed
+
+- Align integration metadata, the lockfile, bundled card editor versions, and
+  dashboard installation resource URLs with release 1.0.0.
+- Reuse the existing CI workflows for releases and grant validation the read
+  permission needed to access repository contents before public launch.
+
 ## [0.8.3] - 2026-10-11
 
 ### Changed
