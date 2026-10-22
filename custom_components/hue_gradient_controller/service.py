@@ -558,7 +558,7 @@ async def _async_set_gradient(call: ServiceCall) -> None:
 
 
 async def _async_apply_preset(call: ServiceCall) -> ServiceResponse:
-    """Apply a portable recipe without replaying brightness or snapshot power."""
+    """Apply a recipe with built-in brightness, without snapshot power."""
     # Local import avoids a cycle: the library reuses our color validators.
     from .presets import DATA_PRESETS, PresetError  # noqa: PLC0415
 
@@ -594,6 +594,10 @@ async def _async_apply_preset(call: ServiceCall) -> ServiceResponse:
                     points=points, mode=GradientMode(recipe["mode"])
                 )
             )
+            if recipe["builtin"]:
+                update.dimming = DimmingFeaturePut(
+                    brightness=recipe["brightness_pct"]
+                )
             if call.data[ATTR_TURN_ON]:
                 update.on = OnFeature(on=True)
             if (transition := call.data.get(ATTR_TRANSITION)) is not None:
@@ -607,6 +611,11 @@ async def _async_apply_preset(call: ServiceCall) -> ServiceResponse:
             applied[entity_id] = {
                 "colors_xy": [[point.color.xy.x, point.color.xy.y] for point in points],
                 "mode": recipe["mode"],
+                **(
+                    {"brightness_pct": recipe["brightness_pct"]}
+                    if recipe["builtin"]
+                    else {}
+                ),
             }
         except Exception as err:
             skipped[entity_id] = "hue_rejected"

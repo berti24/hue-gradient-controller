@@ -5,6 +5,27 @@ async function ready(page,query=""){
   return page.locator("hue-gradient-editor").first().locator("hgc-preset-browser");
 }
 
+test("Vice City presets are available with palette-specific brightness",async({page})=>{
+  const browser=await ready(page);
+  await browser.getByRole("button",{name:"See all"}).click();
+  const catalogue=await page.evaluate(()=>structuredClone(presetStore.presets));
+  expect(catalogue).toHaveLength(16);
+  expect(catalogue.every(preset=>Number.isInteger(preset.brightness_pct)&&preset.brightness_pct>=1&&preset.brightness_pct<=100)).toBe(true);
+  await expect(browser.getByRole("button",{name:/Ocean Drive/})).toHaveCount(0);
+  for(const id of ["vice_city","leonida_after_dark","south_beach","vice_pursuit"]){
+    const preset=catalogue.find(item=>item.id===`builtin:${id}`);
+    const button=browser.getByRole("button",{name:`Apply ${preset.name}, ${preset.preview_rgb.length} colors`,exact:true});
+    await expect(browser.locator(`[data-preset-id="${preset.id}"] .count`)).toContainText(`${preset.brightness_pct}%`);
+    await button.click();
+    await expect(button).toHaveAttribute("aria-pressed","true");
+    expect(await page.evaluate(()=>calls.at(-1)?.service_data?.preset_id)).toBe(preset.id);
+    expect(await page.evaluate(()=>Math.round(hass.states["light.strip"].attributes.brightness/255*100))).toBe(preset.brightness_pct);
+    expect(await page.evaluate(()=>hass.states["light.strip"].attributes.gradient_colors_rgb)).toEqual(preset.preview_rgb);
+  }
+  await browser.getByRole("button",{name:"Back to editor"}).click();
+  await expect(page.locator("hue-gradient-editor").first().getByRole("slider",{name:"Brightness",exact:true})).toHaveValue(String(catalogue.find(item=>item.id==="builtin:vice_pursuit").brightness_pct));
+});
+
 test("popup preset confirmation succeeds and refreshes the subtitle after reapplication",async({page})=>{
   await ready(page);
   const errors=[];page.on("pageerror",error=>errors.push(error.message));
@@ -165,17 +186,18 @@ test("collapsed first, remembered across editors, and three-and-half previews",a
   await page.evaluate(()=>colors.setConfig({...colors._config,presets_expansion:"collapsed"}));
   await expect(disclosure).toHaveAttribute("aria-expanded","false");
 });
-test("apply preserves brightness, stars reorder, and library back restores controls",async({page})=>{
+test("built-in brightness applies, stars reorder, and library back restores controls",async({page})=>{
   const browser=await ready(page);
   await browser.getByRole("button",{name:"Presets",exact:true}).click();
   await browser.getByRole("button",{name:"Apply Ocean, 2 colors",exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>calls.at(-1)?.service)).toBe("apply_preset");
-  expect(await page.evaluate(()=>hass.states["light.strip"].attributes.brightness)).toBe(179);
+  const expectedBrightness=await page.evaluate(()=>presetStore.presets.find(preset=>preset.id==="builtin:ocean").brightness_pct);
+  expect(await page.evaluate(()=>Math.round(hass.states["light.strip"].attributes.brightness/255*100))).toBe(expectedBrightness);
   await expect(browser.getByRole("button",{name:"Apply Ocean, 2 colors",exact:true})).toHaveAttribute("aria-pressed","true");
   await browser.getByRole("button",{name:"Favorite Ember",exact:true}).click();
   await expect(browser.locator("li").first()).toHaveAttribute("data-preset-id","builtin:ember");
   await browser.getByRole("button",{name:"See all"}).click();
-  await expect(browser.locator(".grid li")).toHaveCount(12);
+  await expect(browser.locator(".grid li")).toHaveCount(16);
   await expect(page.locator("hue-gradient-editor").first().locator(".wheel")).toBeHidden();
   await browser.getByRole("button",{name:"Back to editor"}).click();
   await expect(page.locator("hue-gradient-editor").first().locator(".wheel")).toBeVisible();
@@ -190,6 +212,7 @@ test("save exact current, update, rename and confirmed delete without auto-favor
   expect(await page.evaluate(()=>presetStore.presets.at(-1).colors_xy)).toEqual([[.55,.4],[.4,.2],[.25,.1],[.16,.12]]);
   await browser.getByRole("button",{name:"Apply My palette, 4 colors",exact:true}).click();
   await expect(browser.getByRole("button",{name:"Apply My palette, 4 colors",exact:true})).toHaveAttribute("aria-pressed","true");
+  expect(await page.evaluate(()=>hass.states["light.strip"].attributes.brightness)).toBe(179);
   await expect(browser.getByRole("button",{name:"Save current",exact:true})).toBeEnabled();
   await browser.getByRole("button",{name:"Save current",exact:true}).click();
   await browser.getByRole("button",{name:"Update preset",exact:true}).click();
@@ -199,21 +222,21 @@ test("save exact current, update, rename and confirmed delete without auto-favor
   await browser.getByRole("button",{name:"Delete Evening",exact:true}).click();
   await expect(browser.getByText(/Delete “Evening” for everyone/)).toBeVisible();
   await browser.getByRole("button",{name:"Delete preset",exact:true}).click();
-  await expect(browser.locator(".grid li")).toHaveCount(12);
+  await expect(browser.locator(".grid li")).toHaveCount(16);
 });
 test("incompatibility, protected power and rejected applications remain honest",async({page})=>{
   const browser=await ready(page);
   await browser.getByRole("button",{name:"See all"}).click();
   await page.evaluate(()=>updateHass({states:{...hass.states,"light.strip":{...hass.states["light.strip"],attributes:{...hass.states["light.strip"].attributes,gradient_points_capable:2}}}}));
   await expect(browser.getByRole("button",{name:/Apply Aurora/})).toBeDisabled();
-  await expect(browser.getByText("Needs 3 colors; this light supports 2")).toHaveCount(3);
+  await expect(browser.getByText("Needs 3 colors; this light supports 2")).toHaveCount(6);
   await page.evaluate(()=>{colors.setConfig({...colors._config,protect_when_off:true});updateHass({states:{...hass.states,"light.strip":{...hass.states["light.strip"],state:"off"}}});});
-  await expect(browser.getByRole("button",{name:/Apply Ocean/})).toBeDisabled();
+  await expect(browser.getByRole("button",{name:"Apply Ocean, 2 colors",exact:true})).toBeDisabled();
   await expect(browser.getByRole("button",{name:"Favorite Ocean",exact:true})).toBeEnabled();
   await page.evaluate(()=>{updateHass({states:{...hass.states,"light.strip":{...hass.states["light.strip"],state:"on"}}});window.rejectNext=true;});
-  await browser.getByRole("button",{name:/Apply Ocean/}).click();
+  await browser.getByRole("button",{name:"Apply Ocean, 2 colors",exact:true}).click();
   await expect(page.locator("hue-gradient-editor").first().getByRole("alert")).toContainText("Backend rejected");
-  await expect(browser.getByRole("button",{name:/Apply Ocean/})).toHaveAttribute("aria-pressed","false");
+  await expect(browser.getByRole("button",{name:"Apply Ocean, 2 colors",exact:true})).toHaveAttribute("aria-pressed","false");
 });
 test("carousel swipe scrolls without applying and next arrow reaches later presets",async({page})=>{
   await page.setViewportSize({width:390,height:844});const browser=await ready(page);

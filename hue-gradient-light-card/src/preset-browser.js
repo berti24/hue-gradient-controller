@@ -134,12 +134,13 @@ export class PresetBrowser extends LitElement {
     const reason=presetReason(preset,this.caps), favorite=this._data.favorites.includes(preset.id);
     const selected=this.selectedId===preset.id && Boolean(activePreset(this.hass,this.entity,true,[preset]));
     return html`<li class="preset" data-preset-id=${preset.id}>
-      <button class=${`apply${selected?" selected":""}`} title=${reason||preset.name}
+      <button class=${`apply${selected?" selected":""}`} title=${reason||`${preset.name}${preset.brightness_pct!==undefined?` · ${preset.brightness_pct}% brightness`:""}`}
         aria-label=${`Apply ${preset.name}, ${preset.preview_rgb.length} colors${reason?`. ${reason}`:""}`}
+        aria-description=${preset.brightness_pct!==undefined?`Sets brightness to ${preset.brightness_pct} percent`:"Keeps current brightness"}
         aria-pressed=${String(selected)}
         ?disabled=${!this.canApply||this._busy||!this._data.available||Boolean(reason)} @click=${e=>this._apply(preset,e)}>
         <span class="swatch" style=${`background:${colorLayer(preset.preview_rgb,100)}`}></span>
-        <span class="name">${preset.name}</span><span class="count">${preset.preview_rgb.length} colors</span>
+        <span class="name">${preset.name}</span><span class="count">${preset.preview_rgb.length} colors${preset.brightness_pct!==undefined?` · ${preset.brightness_pct}%`:""}</span>
         ${this._library&&reason?html`<span class="reason">${reason}</span>`:nothing}
       </button>
       <button class=${`star${favorite?" favorite":""}`} aria-label=${`${favorite?"Unfavorite":"Favorite"} ${preset.name}`}

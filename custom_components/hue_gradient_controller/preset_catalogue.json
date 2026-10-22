@@ -2,115 +2,168 @@
   {
     "id": "builtin:ocean",
     "name": "Ocean",
+    "brightness_pct": 50,
     "colors": [
-      "#00D4FF",
-      "#2448FF"
+      "#37E8FF",
+      "#4173FF"
     ]
   },
   {
     "id": "builtin:ember",
     "name": "Ember",
+    "brightness_pct": 35,
     "colors": [
-      "#FFB000",
-      "#FF3300"
+      "#FFC15B",
+      "#FF6037"
     ]
   },
   {
     "id": "builtin:candlelight",
     "name": "Candlelight",
+    "brightness_pct": 18,
     "colors": [
-      "#FFB45E",
-      "#FFE4B5"
+      "#FFA961",
+      "#FFD79A"
     ]
   },
   {
     "id": "builtin:aurora",
     "name": "Aurora",
+    "brightness_pct": 55,
     "colors": [
-      "#65FF66",
-      "#00D9C8",
-      "#9747FF"
+      "#50FFB6",
+      "#7EFFFC",
+      "#B27BFF"
     ]
   },
   {
     "id": "builtin:forest",
     "name": "Forest",
+    "brightness_pct": 35,
     "colors": [
-      "#D5F4A0",
-      "#36B66B",
-      "#007A78"
+      "#DBFF99",
+      "#61FF8E",
+      "#40FFBC"
     ]
   },
   {
     "id": "builtin:rose",
     "name": "Rose",
+    "brightness_pct": 40,
     "colors": [
-      "#FFC6DA",
-      "#FF579A",
-      "#AE38A6"
+      "#FFBFD3",
+      "#FF80B5",
+      "#FF8CE2"
     ]
   },
   {
     "id": "builtin:sunset",
     "name": "Sunset",
+    "brightness_pct": 40,
     "colors": [
-      "#FFB23F",
-      "#FF607E",
-      "#C34BDB",
-      "#5246FF"
+      "#FF9E35",
+      "#FF5D4A",
+      "#FF58AB",
+      "#9864FF"
     ]
   },
   {
     "id": "builtin:twilight",
     "name": "Twilight",
+    "brightness_pct": 22,
     "colors": [
-      "#FFC8A2",
-      "#C27DD9",
-      "#7544CF",
-      "#243B87"
+      "#FFB79E",
+      "#F1ACFF",
+      "#A689FF",
+      "#7057FF"
     ]
   },
   {
     "id": "builtin:ice",
     "name": "Ice",
+    "brightness_pct": 60,
     "colors": [
-      "#D5FFFF",
-      "#74E5FF",
-      "#279BFF",
-      "#4861DA"
+      "#D2FFF9",
+      "#81EBFF",
+      "#5AB9FF",
+      "#748AFF"
     ]
   },
   {
     "id": "builtin:prism",
     "name": "Prism",
+    "brightness_pct": 75,
     "colors": [
-      "#FF3355",
-      "#FF9633",
-      "#FFE066",
-      "#00D9DD",
-      "#8447FF"
+      "#FF5370",
+      "#FFA349",
+      "#FFE46E",
+      "#38FFF5",
+      "#9F75FF"
     ]
   },
   {
     "id": "builtin:lagoon",
     "name": "Lagoon",
+    "brightness_pct": 55,
     "colors": [
-      "#E6EF8A",
-      "#8DE190",
-      "#35D7AE",
-      "#00BED1",
-      "#287FD8"
+      "#F0FF9E",
+      "#B5FFB0",
+      "#53FFDF",
+      "#37E9FF",
+      "#56BBFF"
     ]
   },
   {
     "id": "builtin:neon",
     "name": "Neon",
+    "brightness_pct": 80,
     "colors": [
-      "#FF329F",
-      "#BB38FF",
-      "#4655FF",
-      "#00DDD0",
-      "#A2F542"
+      "#FF4CAE",
+      "#C949FF",
+      "#5665FF",
+      "#37FFF4",
+      "#BAFF54"
+    ]
+  },
+  {
+    "id": "builtin:vice_city",
+    "name": "Vice City",
+    "brightness_pct": 70,
+    "colors": [
+      "#FF56A5",
+      "#C15FFF",
+      "#5386FF",
+      "#4DFEFF"
+    ]
+  },
+  {
+    "id": "builtin:leonida_after_dark",
+    "name": "Leonida After Dark",
+    "brightness_pct": 25,
+    "colors": [
+      "#30FFDB",
+      "#FFAA3A",
+      "#FF5436"
+    ]
+  },
+  {
+    "id": "builtin:vice_pursuit",
+    "name": "Vice Pursuit",
+    "brightness_pct": 75,
+    "colors": [
+      "#FF4B5C",
+      "#F1F7FF",
+      "#427FFF"
+    ]
+  },
+  {
+    "id": "builtin:south_beach",
+    "name": "South Beach",
+    "brightness_pct": 60,
+    "colors": [
+      "#FFCEA8",
+      "#FF96C9",
+      "#92FFF6"
     ]
   }
 ]

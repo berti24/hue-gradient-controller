@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-10-22
+
+### Added
+
+- Four GTA VI themed built-in gradient palettes: Vice City, Leonida After Dark,
+  Vice Pursuit, and South Beach.
+
+### Changed
+
+- Refresh built-in palette colors and give each one an individual, mood-matched
+  brightness target. Applying a saved custom preset keeps the current brightness.
+- Lower ambient preset brightness, warm the Sunset palette, and refine Leonida
+  After Dark with teal, amber and red-orange at 25%. Normalize built-in swatches
+  so dark RGB shading does not imply separate brightness for individual stops.
+
 ## [1.0.0] - 2026-10-11
 
 ### Fixed
@@ -32,4 +47,5 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Responsive layouts, touch and keyboard editing, and Protect while off.
 - Redacted diagnostics, Home Assistant Repairs, and HACS installation support.
 
+[1.1.0]: https://github.com/berti24/hue-gradient-controller/releases/tag/v1.1.0
 [1.0.0]: https://github.com/berti24/hue-gradient-controller/releases/tag/v1.0.0

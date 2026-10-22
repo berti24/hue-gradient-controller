@@ -27,6 +27,8 @@ DATA_PRESETS = f"{DOMAIN}_presets"
 SIGNAL_PRESETS = f"{DOMAIN}_presets_changed"
 MODE = GradientMode.INTERPOLATED_PALETTE.value
 MAX_NAME_LENGTH = 80
+MIN_BRIGHTNESS_PCT = 1
+MAX_BRIGHTNESS_PCT = 100
 MIN_POINTS = 2
 
 BUILTINS = tuple(
@@ -35,6 +37,7 @@ BUILTINS = tuple(
         "name": item["name"],
         "mode": MODE,
         "builtin": True,
+        "brightness_pct": item["brightness_pct"],
         "preview_rgb": [
             color_util.rgb_hex_to_rgb_list(value[1:]) for value in item["colors"]
         ],
@@ -93,7 +96,14 @@ def validate_recipe(recipe: dict) -> None:
     if len(colors) < MIN_POINTS:
         raise ValueError("A preset needs at least two colors")
     _validate_colors(colors)
-    if not recipe.get("builtin"):
+    if recipe.get("builtin"):
+        brightness_pct = recipe.get("brightness_pct")
+        if (
+            type(brightness_pct) is not int
+            or not MIN_BRIGHTNESS_PCT <= brightness_pct <= MAX_BRIGHTNESS_PCT
+        ):
+            raise ValueError("Invalid built-in preset brightness")
+    else:
         if len(recipe["colors_xy"]) != len(colors):
             raise ValueError("Preset preview and xy counts differ")
         for point in recipe["colors_xy"]:

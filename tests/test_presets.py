@@ -61,11 +61,23 @@ async def _save(library, user, light):
 async def test_catalogue_and_exact_capture_restart(hass, preset_environment):
     """Recipes capture precise xy, not display RGB or unrelated snapshot fields."""
     _, _, light, controller, user, library = preset_environment
-    assert len(BUILTINS) == 12
+    assert len(BUILTINS) == 16
     assert {len(recipe["preview_rgb"]) for recipe in BUILTINS} == {2, 3, 4, 5}
+    assert all(1 <= recipe["brightness_pct"] <= 100 for recipe in BUILTINS)
+    assert [recipe["name"] for recipe in BUILTINS[-4:]] == [
+        "Vice City",
+        "Leonida After Dark",
+        "Vice Pursuit",
+        "South Beach",
+    ]
     recipe = await _save(library, user, light)
     assert recipe["colors_xy"] == [[0.123456, 0.345678], [0.4, 0.2]]
-    assert not {"brightness", "on", "source_entity_id"} & recipe.keys()
+    assert not {
+        "brightness",
+        "brightness_pct",
+        "on",
+        "source_entity_id",
+    } & recipe.keys()
     assert library.view(user)["favorites"] == []
     controller.update.assert_not_awaited()
     restarted = PresetLibrary(hass)
@@ -222,6 +234,25 @@ async def test_apply_exact_preserves_brightness_and_context(hass, preset_environ
     assert response["applied"][target.entity_id]["colors_xy"] == recipe["colors_xy"]
 
 
+async def test_apply_builtin_sets_its_suggested_brightness(hass, preset_environment):
+    """Built-in presets write their catalogue brightness with the gradient."""
+    _, _, light, controller, _, library = preset_environment
+    recipe = library.get("builtin:ocean")
+    response = await hass.services.async_call(
+        DOMAIN,
+        "apply_preset",
+        {"entity_id": light.entity_id, "preset_id": recipe["id"]},
+        blocking=True,
+        return_response=True,
+    )
+    update = controller.update.call_args.args[1]
+    assert update.dimming.brightness == recipe["brightness_pct"]
+    assert response["applied"][light.entity_id]["brightness_pct"] == recipe[
+        "brightness_pct"
+    ]
+    assert update.on.on is True
+
+
 async def test_apply_authorizes_every_target_before_any_write(hass, preset_environment):
     """A denied target prevents otherwise eligible partial success."""
     _, component, light, controller, _, _ = preset_environment
@@ -327,7 +358,7 @@ async def test_websocket_protocol_subscription_and_private_mutation(
     await client.send_json({"id": 1, "type": PREFIX + "subscribe"})
     assert (await client.receive_json())["success"]
     event = await client.receive_json()
-    assert len(event["event"]["presets"]) == 12
+    assert len(event["event"]["presets"]) == 16
     await client.send_json(
         {
             "id": 2,
