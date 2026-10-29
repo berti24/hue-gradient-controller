@@ -75,8 +75,9 @@ not per-frame telemetry for Hue Entertainment streaming.
 ## Gradient presets
 
 The optional dashboard editor includes a collapsible, swipeable preset carousel
-and a **See all** library view. Sixteen built-in palettes contain two through five
-colors, including four GTA VI palettes inspired by Vice City and Leonida.
+and a **See all** library view. Twenty built-in palettes contain two through five
+colors, including four GTA VI palettes inspired by Vice City and Leonida, two
+Halloween palettes, and two Christmas palettes.
 **Save current** captures exact live Hue xy points and mode; custom presets are
 shared across Home Assistant devices and cards. Favorites are personal, appear
 first, and are not added automatically when saving. See the

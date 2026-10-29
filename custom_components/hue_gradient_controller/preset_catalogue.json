@@ -165,5 +165,47 @@
       "#FF96C9",
       "#92FFF6"
     ]
+  },
+  {
+    "id": "builtin:witching_hour",
+    "name": "Witching Hour",
+    "brightness_pct": 32,
+    "colors": [
+      "#8854FF",
+      "#72FF56",
+      "#FF7D32"
+    ]
+  },
+  {
+    "id": "builtin:pumpkin_patch",
+    "name": "Pumpkin Patch",
+    "brightness_pct": 38,
+    "colors": [
+      "#FFE27A",
+      "#FF9A2B",
+      "#FF541F"
+    ]
+  },
+  {
+    "id": "builtin:candy_cane",
+    "name": "Candy Cane",
+    "brightness_pct": 55,
+    "colors": [
+      "#F5214B",
+      "#FFF4E3",
+      "#D61734",
+      "#FFFFFF"
+    ]
+  },
+  {
+    "id": "builtin:holiday_glow",
+    "name": "Holiday Glow",
+    "brightness_pct": 52,
+    "colors": [
+      "#007E45",
+      "#EC243A",
+      "#FFD370",
+      "#7FE8FF"
+    ]
   }
 ]

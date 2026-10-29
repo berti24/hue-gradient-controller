@@ -9,6 +9,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Add Witching Hour and Pumpkin Patch Halloween palettes, plus Candy Cane and
+  Holiday Glow Christmas palettes.
 - Four GTA VI themed built-in gradient palettes: Vice City, Leonida After Dark,
   Vice Pursuit, and South Beach.
 

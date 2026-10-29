@@ -61,14 +61,14 @@ async def _save(library, user, light):
 async def test_catalogue_and_exact_capture_restart(hass, preset_environment):
     """Recipes capture precise xy, not display RGB or unrelated snapshot fields."""
     _, _, light, controller, user, library = preset_environment
-    assert len(BUILTINS) == 16
+    assert len(BUILTINS) == 20
     assert {len(recipe["preview_rgb"]) for recipe in BUILTINS} == {2, 3, 4, 5}
     assert all(1 <= recipe["brightness_pct"] <= 100 for recipe in BUILTINS)
     assert [recipe["name"] for recipe in BUILTINS[-4:]] == [
-        "Vice City",
-        "Leonida After Dark",
-        "Vice Pursuit",
-        "South Beach",
+        "Witching Hour",
+        "Pumpkin Patch",
+        "Candy Cane",
+        "Holiday Glow",
     ]
     recipe = await _save(library, user, light)
     assert recipe["colors_xy"] == [[0.123456, 0.345678], [0.4, 0.2]]
@@ -358,7 +358,7 @@ async def test_websocket_protocol_subscription_and_private_mutation(
     await client.send_json({"id": 1, "type": PREFIX + "subscribe"})
     assert (await client.receive_json())["success"]
     event = await client.receive_json()
-    assert len(event["event"]["presets"]) == 16
+    assert len(event["event"]["presets"]) == 20
     await client.send_json(
         {
             "id": 2,
