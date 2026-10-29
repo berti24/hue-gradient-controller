@@ -72,6 +72,7 @@ export class HueGradientEditor extends LitElement {
           if(!applied)throw Error(`Preset could not apply: ${result?.response?.skipped?.[entity]??"no confirmation"}`);
           rememberPreset(this.hass,entity,{id:command.data.preset_id,...applied});
           if(this._config.entity===entity) {
+            if(Number.isFinite(applied.brightness_pct))this._brightness=applied.brightness_pct;
             if(this._tracker.confirmGradient(this.state,applied))this._gradientActive=true;
             this.gradientConfirmed?.(applied);
           }

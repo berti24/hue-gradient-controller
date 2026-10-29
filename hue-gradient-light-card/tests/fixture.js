@@ -54,7 +54,7 @@ if(!params.has("noBubble"))await import(`/.cache/bubble-card-${params.get("bubbl
 const helpers=await window.loadCardHelpers();
 window.calls=[];
 const presetCatalogue=await fetch("/custom_components/hue_gradient_controller/preset_catalogue.json").then(r=>r.json());
-const fixturePresets=presetCatalogue.map(item=>({id:item.id,name:item.name,mode:"interpolated_palette",builtin:true,revision:1,
+const fixturePresets=presetCatalogue.map(item=>({id:item.id,name:item.name,brightness_pct:item.brightness_pct,mode:"interpolated_palette",builtin:true,revision:1,
   preview_rgb:item.colors.map(color=>[1,3,5].map(offset=>parseInt(color.slice(offset,offset+2),16))),can_edit:false}));
 window.presetStore={presets:fixturePresets,users:{}};
 window.presetSubscribers=new Set();
@@ -130,9 +130,9 @@ window.hass={
       const preset=presetStore.presets.find(item=>item.id===request.service_data.preset_id);
       const xy=preset.colors_xy??preset.preview_rgb.map(simulatedXy),entity=request.target.entity_id;
       if(!params.has("noEcho"))updateHass({states:{...hass.states,[entity]:{...hass.states[entity],state:"on",
-        attributes:{...hass.states[entity].attributes,color_mode:"xy",gradient_colors_xy:xy,
+        attributes:{...hass.states[entity].attributes,...Number.isFinite(preset.brightness_pct)?{brightness:Math.round(preset.brightness_pct*255/100)}:{},color_mode:"xy",gradient_colors_xy:xy,
           gradient_colors_rgb:preset.preview_rgb,gradient_mode:preset.mode,rgb_color:preset.preview_rgb[0],xy_color:xy[0]}}}});
-      return {response:{applied:{[entity]:{colors_xy:xy,mode:preset.mode}},skipped:{}}};
+      return {response:{applied:{[entity]:{colors_xy:xy,mode:preset.mode,...Number.isFinite(preset.brightness_pct)?{brightness_pct:preset.brightness_pct}:{}}},skipped:{}}};
     }
     return {response:{version:1,entities:{"light.strip":{colors_xy:gradient.gradient_colors_xy,mode:gradient.gradient_mode,on:true,brightness:70.123}},skipped:{}}};
   },

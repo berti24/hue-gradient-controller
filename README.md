@@ -75,17 +75,22 @@ not per-frame telemetry for Hue Entertainment streaming.
 ## Gradient presets
 
 The optional dashboard editor includes a collapsible, swipeable preset carousel
-and a **See all** library view. Twelve built-in palettes contain two through five
-colors. **Save current** captures exact live Hue xy points and mode; custom presets
-are shared across Home Assistant devices and cards. Favorites are personal, appear
+and a **See all** library view. Twenty built-in palettes contain two through five
+colors, including four GTA VI palettes inspired by Vice City and Leonida, two
+Halloween palettes, and two Christmas palettes.
+**Save current** captures exact live Hue xy points and mode; custom presets are
+shared across Home Assistant devices and cards. Favorites are personal, appear
 first, and are not added automatically when saving. See the
 [card documentation](hue-gradient-light-card/README.md#gradient-presets) for controls.
 
 Creators and administrators can update, rename, and delete custom presets.
-Presets preserve brightness and can be reused on other selected native gradient
-lights with sufficient capacity and support for their mode. Exact xy values are
-sent unchanged, though different light hardware may produce different colors.
-This is a color recipe, separate from the entity-bound snapshot/restore actions.
+Each built-in palette includes a suggested brightness tuned to its mood; its
+percentage appears below the preview and is applied with the gradient. Custom
+presets keep the current brightness and can be reused on other selected native
+gradient lights with sufficient capacity and support for their mode. Exact xy
+values are sent unchanged, though different light hardware may produce different
+colors. This is a color recipe, separate from the entity-bound snapshot/restore
+actions.
 
 ```yaml
 action: hue_gradient_controller.apply_preset
@@ -97,8 +102,9 @@ data:
   turn_on: true
 ```
 
-`turn_on` defaults to true. Omit brightness: this action never changes it. Custom
-preset IDs are returned when saving and appear in authenticated library messages.
+`turn_on` defaults to true. Built-in presets apply their suggested brightness;
+custom preset IDs leave brightness unchanged. Custom preset IDs are returned
+when saving and appear in authenticated library messages.
 Optional action response data contains `applied` (including expected xy points
 and mode) and target-specific `skipped` reasons. Normal target authorization,
 bridge selection, sequential writes, and best-effort behavior apply.

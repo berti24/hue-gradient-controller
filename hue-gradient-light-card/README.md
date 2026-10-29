@@ -46,7 +46,7 @@ as described above. Then, for either installation method:
    Python integration.
 2. Enable Advanced mode in your profile. Open **Settings → Dashboards →
    three-dot menu → Resources → Add resource**. Enter
-   `/local/hue-gradient-light-card.js?v=1.0.0` and choose **JavaScript module**.
+   `/local/hue-gradient-light-card.js?v=1.1.0` and choose **JavaScript module**.
    Use the installed release version when updating in the future.
 3. Hard-refresh the browser/companion app frontend. Add a card and search for
    **Hue Gradient Light** or **Hue Gradient Editor**.
@@ -65,7 +65,7 @@ For YAML-managed dashboard resources:
 ```yaml
 lovelace:
   resources:
-    - url: /local/hue-gradient-light-card.js?v=1.0.0
+    - url: /local/hue-gradient-light-card.js?v=1.1.0
       type: module
 ```
 
@@ -237,9 +237,14 @@ supplied state alone.
 Selected native Hue gradient lights gain **Presets** above the wheel. The chevron
 opens a carousel showing three complete previews and half the next preview. Swipe,
 drag with a mouse, use the mouse wheel or trackpad, tab through presets, or use
-Previous/Next buttons to browse. Tapping
-a preview applies its colors and mode immediately, preserving brightness and the
-current view. Swiping and starring never change the light.
+Previous/Next buttons to browse. Tapping a preview applies its colors and mode
+immediately. Built-in previews show their suggested brightness, which is applied
+with the palette; custom previews keep the current brightness. The current view
+stays open. Swiping and starring never change the light.
+
+Built-in swatches show color at a normalized intensity. The preset brightness
+controls the whole light; individual gradient stops do not carry separate
+brightness values. Adjust the brightness slider after applying to suit your room.
 
 **See all** opens the full preset grid inside the same editor; **Back to editor**
 restores its previous carousel position. The confirmed active preset stays selected
@@ -248,8 +253,9 @@ keeps catalogue/favorite ordering and carousel position stable. Outside color/mo
 changes clear the highlight when the reported palette no longer matches. Reloading
 the browser starts a new session. Star a preset to show it before nonfavorites.
 The built-in catalogue includes Ocean, Ember, Candlelight, Aurora, Forest, Rose,
-Sunset, Twilight, Ice, Prism, Lagoon, and Neon, with two through five colors.
-Presets needing more points or an unsupported mode remain visible with a reason.
+Sunset, Twilight, Ice, Prism, Lagoon, Neon, Vice City, Leonida After Dark, Vice
+Pursuit, and South Beach, with two through five colors. Presets needing more
+points or an unsupported mode remain visible with a reason.
 
 **Save current** opens a name form and captures confirmed live xy points and mode,
 without brightness or power. Pending/unconfirmed edits must settle first. Use

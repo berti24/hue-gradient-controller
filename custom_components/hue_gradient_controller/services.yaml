@@ -95,7 +95,7 @@ restore_gradient:
 
 apply_preset:
   name: Apply preset
-  description: Apply a stored gradient recipe to compatible native Hue lights without changing brightness.
+  description: Apply a built-in gradient recipe with its suggested brightness, or apply a saved custom recipe while keeping the current brightness.
   target:
     entity:
       domain: light

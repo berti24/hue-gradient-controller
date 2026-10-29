@@ -46,7 +46,7 @@
   "services": {
     "apply_preset": {
       "name": "Apply preset",
-      "description": "Apply a stored gradient recipe without changing brightness.",
+      "description": "Apply a built-in gradient recipe with its suggested brightness, or apply a saved custom recipe while keeping the current brightness.",
       "fields": {
         "preset_id": {
           "name": "Preset ID",
