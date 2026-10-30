@@ -1,6 +1,12 @@
 # Philips Hue Gradient Controller
 
 <p align="center">
+  <a href="https://github.com/berti24/hue-gradient-controller/releases/latest"><img src="https://img.shields.io/github/v/release/berti24/hue-gradient-controller?display_name=tag&label=release&style=for-the-badge" alt="Latest release"></a>
+  <a href="https://github.com/berti24/hue-gradient-controller/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/berti24/hue-gradient-controller/tests.yml?branch=main&label=CI&style=for-the-badge" alt="CI status"></a>
+  <a href="https://github.com/berti24/hue-gradient-controller/blob/main/LICENSE"><img src="https://img.shields.io/github/license/berti24/hue-gradient-controller?style=for-the-badge" alt="MIT License"></a>
+</p>
+
+<p align="center">
   <img src="hue-gradient-light-card/docs/images/hero.png" alt="Gradient lighting in a living room with the Hue Gradient popup editor" width="760">
 </p>
 
@@ -23,11 +29,19 @@ The integration also adds a [light card](hue-gradient-light-card/README.md) that
 
 ### HACS custom repository
 
+[![Open this repository in the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=berti24&repository=hue-gradient-controller&category=integration)
+
 1. Open HACS.
 2. Add `https://github.com/berti24/hue-gradient-controller` as a custom
    repository of type **Integration**.
 3. Install **Philips Hue Gradient Controller**.
 4. Restart Home Assistant.
+
+After restarting, use this shortcut or follow steps 5–6 below to open the
+integration setup flow:
+
+[![Add Philips Hue Gradient Controller to Home Assistant.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=hue_gradient_controller)
+
 5. Open **Settings → Devices & services → Add integration** and select
    **Philips Hue Gradient Controller**.
 6. Select one or more configured Hue v2 bridges, or select **All Hue bridges**.
