@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="hue-gradient-light-card/docs/images/hero.png" alt="Gradient lighting in a living room with the Hue Gradient popup editor" width="760">
+  <img src="https://raw.githubusercontent.com/berti24/hue-gradient-controller/main/hue-gradient-light-card/docs/images/hero.png" alt="Gradient lighting in a living room with the Hue Gradient popup editor" width="760">
 </p>
 
 Home Assistant integration that adds gradient controls to the light entities
